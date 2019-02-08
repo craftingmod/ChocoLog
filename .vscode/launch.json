@@ -5,7 +5,7 @@
       "request": "launch",
       "name": "Debug Project",
       // we test in `build` to make cleanup fast and easy
-      "cwd": "${workspaceFolder}/build",
+      "cwd": "${workspaceFolder}",
       // Replace this with your project root. If there are multiple, you can
       // automatically run the currently visible file with: "program": ${file}"
       "program": "${workspaceFolder}/src/launch.ts",

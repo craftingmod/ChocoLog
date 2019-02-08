@@ -1,21 +1,36 @@
+import chalk from "chalk"
+import emphasize, { Sheet } from "emphasize"
+import fs from "fs"
+import stripAnsi from "strip-ansi"
 import wcwidth from "wcwidth"
 import { dongbak } from "./dongbak"
-import { substrMono, unicodeLn } from "./log"
+import { ChocoLog, substrMono, unicodeLn } from "./log"
+import { styledCSS } from "./styledcss"
 
 console.log("Hello World")
 
-const dongbaks = dongbak.split("\n")
-const splits:string[] = []
-const test = substrMono("늬 집은 이런거 없제잉", 3, 9)
-console.log(test)
-for (const str of dongbaks) {
-    const column = process.stdout.columns
-    for (let i = 0; i < wcwidth(str); i += column) {
-        const part = substrMono(str, i, column - 1) + "|"
-        splits.push(part)
+// https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css
+async function run() {
+    const cssurl = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css"
+    const vscss = await new ChocoLog().setCodeTheme(cssurl)
+    const dongbaks = emphasize.highlightAuto(fs.readFileSync("./example.js", "utf8"), vscss as Sheet).value.split("\n")
+    const splits:string[] = []
+    const test = substrMono("늬 집은 이런거 없제잉", 3, 9)
+    console.log(wcwidth("\u{1B}"))
+    console.log(test)
+    for (const str of dongbaks) {
+        const column = process.stdout.columns
+        for (let i = 0; i < stripAnsi(str).length; true) {
+            const sub = substrMono(str, i, column - 1)
+            const part = sub.content + "|"
+            i += sub.original.length
+            console.log(JSON.stringify(sub.lastStyle))
+            splits.push(part)
+        }
     }
+    console.log(splits.join("\n"))
 }
-console.log(splits.join("\n"))
+run()
 /*
 for (let i = 0; i < dongbaks.length; i += 1) {
     const ln = unicodeLn(dongbaks[i])

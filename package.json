@@ -20,8 +20,22 @@
     "node": ">=8.9"
   },
   "dependencies": {
+    "@types/ansi-regex": "^4.0.0",
+    "@types/color": "^3.0.0",
+    "@types/highlight.js": "^9.12.3",
+    "@types/node-fetch": "^2.1.4",
+    "@types/strip-ansi": "^3.0.0",
     "@types/wcwidth": "^1.0.0",
+    "ansi-parser": "^3.2.9",
+    "ansi-regex": "^4.0.0",
     "chalk": "^2.4.2",
+    "color": "^3.1.0",
+    "emphasize": "^2.0.0",
+    "highlight.js": "^9.14.2",
+    "node-fetch": "^2.3.0",
+    "request": "^2.88.0",
+    "request-promise-native": "^1.0.5",
+    "strip-ansi": "^5.0.0",
     "wcwidth": "^1.0.1"
   },
   "devDependencies": {
