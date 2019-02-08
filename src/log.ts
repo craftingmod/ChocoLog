@@ -6,12 +6,39 @@ import emphasize, { Sheet } from "emphasize"
 import fetch from "node-fetch"
 import stripAnsi from "strip-ansi"
 import wcwidth from "wcwidth"
+import { Serializable } from "./types/serialize"
 
 const defaultCodeCSS = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css"
+type LikeString = boolean | number | string | Buffer | Serializable
 export class ChocoLog {
     protected codeBackground = "#222222"
     protected codeTextColor = "#ffffff"
     protected codeStyle:Sheet = null
+
+    protected headerSize = 30
+    protected middleSize = 3
+
+    protected get width() {
+        return process.stdout.columns
+    }
+    // protected headerChalk = chalk.
+    /*
+    =====================================================
+    = Define default methods
+    =====================================================
+    */
+    public d(_title:LikeString, _desc?:LikeString) {
+        const [title, desc] = this.fallbackParam(_title, _desc)
+        this.printSimple(title, desc, {
+            tagName: "D",
+            header: chalk.greenBright,
+        })
+    }
+    /*
+    =====================================================
+    = Theme Part
+    =====================================================
+    */
     public async setDefaultTheme() {
         return this.setCodeTheme(defaultCodeCSS)
     }
@@ -77,7 +104,107 @@ export class ChocoLog {
         this.codeStyle = styles
         return styles
     }
+    /*
+    =====================================================
+    = Utility part
+    =====================================================
+    */
+    /**
+     * something to string
+     * @param obj any
+     */
+    protected toStr(obj:any) {
+        if (obj instanceof Map) {
+            return ""
+        }
+        switch (typeof obj) {
+            case "boolean":
+            case "number":
+            case "bigint":
+            case "string":
+                return obj.toString()
+            case "function":
+                return `[Function ${obj.name}]`
+            case "undefined":
+                return `[undefined]`
+            case "object":
+                return JSON.stringify(obj, null, 2)
+            default:
+                return ""
+        }
+    }
+    protected fallbackParam(title:LikeString, desc:LikeString) {
+        if (desc == null) {
+            desc = this.toStr(title)
+            const caller = this.caller(2)
+            title = `${caller.fileName}#${caller.funcName}"${caller.line}`
+        } else {
+            title = this.toStr(desc)
+            desc = this.toStr(desc)
+        }
+        return [title, desc]
+    }
+    protected encodeCaller(called:Called) {
+        return `${called.fileName}#${called.funcName}"${called.line}`
+    }
+    protected caller(deeper:number):Called {
+        const lastEl = <T>(arr:T[]) => arr[arr.length - 1]
+        try {
+            throw new Error()
+        } catch (err) {
+            const stack = (err as Error).stack
+            const stackes = stack.split("\n")
+            const query = stackes[2 + deeper]
+            let sourcepath = query.substring(query.indexOf("(") + 1, query.lastIndexOf(")"))
+            const lastInfo = lastEl(sourcepath.split(/[\/\\]/ig))
+            const sourceLine = lastInfo.substring(lastInfo.indexOf(":"), lastInfo.lastIndexOf(":"))
+            let functionName = query.match(/^\s+at.+\(/i)[0]
+            functionName = functionName.substring(0, functionName.length - 1).trim()
+            functionName = functionName.substring(3, functionName.length)
+            sourcepath = lastInfo.substring(0, lastInfo.indexOf(":"))
+            return {
+                fileName: sourcepath,
+                funcName: functionName,
+                line: sourceLine,
+            }
+        }
+    }
+    protected get timestamp() {
+        const time = new Date(Date.now())
+        let h = time.getHours()
+        const isPM = h >= 12
+        if (isPM) {
+            h -= 12
+        }
+        if (h === 0) {
+            h = 12
+        }
+        const pad = (n:number) => n.toString(10).padStart(2, "0")
+        const m = time.getMinutes()
+        const s = time.getSeconds()
+        return `${isPM ? "P" : "A"}${pad(h)}:${pad(m)}:${pad(s)}`
+    }
+    protected printSimple(header:string, content:string, options:{tagName:string, header:Chalk}) {
+        const prefixLn = this.headerSize + this.middleSize
+        const caller = this.encodeCaller(this.caller(2))
+        const suffixLn = consoleLn(caller) + 4 +
+    }
+    protected async write(str:string) {
+        return new Promise<void>((res, rej) => {
+            process.stdout.write(str, () => res())
+        })
+    }
 }
+interface Called {
+    fileName:string,
+    funcName:string,
+    line:string,
+}
+/**
+ * Get first element of array
+ *
+ * Null if non exists
+ */
 function getFirst<T extends any>(arr:T[]):T {
     if (arr == null || arr.length < 1) {
         return null
@@ -85,6 +212,10 @@ function getFirst<T extends any>(arr:T[]):T {
         return arr[0]
     }
 }
+/**
+ * Css color element to hex color string
+ * @param text css text
+ */
 function cssToColor(text:string) {
     if (text == null) {
         return null
@@ -95,14 +226,18 @@ function cssToColor(text:string) {
     filter = `#${Color(filter).rgbNumber().toString(16).padStart(6, "0").toUpperCase()}`
     return filter
 }
-export function unicodeLn(text:string) {
+/**
+ * Calculate for console print's length
+ * @param text Text
+ */
+export function consoleLn(text:string) {
     if (text.indexOf("\n") >= 0) {
-        return -1
+        throw new Error("Line seperator didn't allowed.")
     }
     let ln = 0
-    const arr = [...text]
-    for (let i = 0; i < text.length; i += 1) {
-        const char = text.charAt(i)
+    const arr = [...stripAnsi(text)]
+    for (let i = 0; i < arr.length; i += 1) {
+        const char = arr[i]
         if (char === "\t") {
             ln = Math.ceil((ln + 1) / 4) * 4
             continue

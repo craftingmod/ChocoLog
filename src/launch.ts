@@ -4,8 +4,7 @@ import fs from "fs"
 import stripAnsi from "strip-ansi"
 import wcwidth from "wcwidth"
 import { dongbak } from "./dongbak"
-import { ChocoLog, substrMono, unicodeLn } from "./log"
-import { styledCSS } from "./styledcss"
+import { ChocoLog, substrMono } from "./log"
 
 console.log("Hello World")
 
@@ -13,7 +12,7 @@ console.log("Hello World")
 async function run() {
     const cssurl = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css"
     const vscss = await new ChocoLog().setCodeTheme(cssurl)
-    const dongbaks = emphasize.highlightAuto(fs.readFileSync("./example.js", "utf8"), vscss as Sheet).value.split("\n")
+    const dongbaks = emphasize.highlightAuto(fs.readFileSync("./example.css", "utf8"), vscss as Sheet).value.split("\n")
     const splits:string[] = []
     const test = substrMono("늬 집은 이런거 없제잉", 3, 9)
     console.log(wcwidth("\u{1B}"))
@@ -29,6 +28,9 @@ async function run() {
         }
     }
     console.log(splits.join("\n"))
+    const log = new ChocoLog()
+    log.d("Test")
+    console.log(`ℹ 테스트`)
 }
 run()
 /*
