@@ -20,7 +20,8 @@
       "smartStep": true,
       "runtimeArgs": ["--nolazy"],
       "env": {
-        "TYPESCRIPT_STARTER_REPO_URL": "${workspaceFolder}"
+        "TYPESCRIPT_STARTER_REPO_URL": "${workspaceFolder}",
+        "DEBUG": "*",
       },
       "console": "externalTerminal"
     },

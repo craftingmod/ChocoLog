@@ -3,8 +3,10 @@ import emphasize, { Sheet } from "emphasize"
 import fs from "fs"
 import stripAnsi from "strip-ansi"
 import wcwidth from "wcwidth"
+import { ChocoLog } from "./chocolog/log"
+import { substrMono } from "./chocolog/monoutil"
+import TsMap from "./chocolog/tsmap"
 import { dongbak } from "./dongbak"
-import { ChocoLog, substrMono } from "./log"
 
 console.log("Hello World")
 
@@ -27,10 +29,8 @@ async function run() {
             splits.push(part)
         }
     }
-    console.log(splits.join("\n"))
     const log = new ChocoLog()
-    log.d("Test")
-    console.log(`ℹ 테스트`)
+    log.d(dongbaks.join("\n"))
 }
 run()
 /*
