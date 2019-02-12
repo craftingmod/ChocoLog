@@ -67,6 +67,7 @@ export function substrMono(text:string, start:number, length:number) {
     // process
     const tab = "\t"
     let totalLn = 0
+    let skippedCount = 0
     let untilLn = 0
     for (let i = 0; i < charsets.length; i += 1) {
         const char = charsets[i]
@@ -77,6 +78,7 @@ export function substrMono(text:string, start:number, length:number) {
             totalLn += ln
         }
         if (i < start) {
+            skippedCount += 1
             continue
         } else if (untilLn === 0) {
             untilLn = totalLn - ln + length
@@ -91,11 +93,11 @@ export function substrMono(text:string, start:number, length:number) {
     const orgText = out.join("")
     let asOffset = 0
     for (let i = 0; i < ansiCodes.length; i += 1) {
-        const insert = ansiPosInfo[i] + asOffset
-        if (insert < out.length) {
+        const insert = ansiPosInfo[i] + asOffset - skippedCount
+        if (insert >= 0 && insert < out.length) {
             out.splice(insert, 0, ansiCodes[i])
+            asOffset += 1
         }
-        asOffset += 1
     }
     const styleText = out.join("")
     return {
