@@ -14,25 +14,40 @@ console.log("Hello World")
 async function run() {
     const cssurl = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css"
     const vscss = await new ChocoLog().setCodeTheme(cssurl)
-    const dongbaks = emphasize.highlightAuto(fs.readFileSync("./example.css", "utf8"), vscss as Sheet).value.split("\n")
-    const splits:string[] = []
-    const test = substrMono("늬 집은 이런거 없제잉", 3, 9)
-    console.log(wcwidth("\u{1B}"))
-    console.log(test)
-    for (const str of dongbaks) {
-        const column = process.stdout.columns
-        for (let i = 0; i < stripAnsi(str).length; true) {
-            const sub = substrMono(str, i, column - 1)
-            const part = sub.content + "|"
-            i += sub.original.length
-            console.log(JSON.stringify(sub.lastStyle))
-            splits.push(part)
-        }
-    }
+    const dongbaks = emphasize.highlightAuto(fs.readFileSync("./example.js", "utf8"), vscss as Sheet).value.split("\n")
     const log = new ChocoLog()
-    log.d(dongbaks.join("\n"))
+    await log.setCodeTheme(cssurl)
+    await log.v("끼로데수", {
+        aa: 53,
+        bb: "안뇽",
+        cc: true,
+        dd: {
+            ee: "haha",
+            ff: 53,
+        },
+    })
+    await log.v(5353, 7777 + " 덕지덕지해~ " + true)
+    await log.d("한글", true)
+    await log.d(7777)
+    await log.d(dongbaks.join("\n"))
+    await log.d(dongbak)
 }
 run()
+async function test() {
+    const log = new ChocoLog()
+    await log.setDefaultTheme()
+    log.d(5353)
+    log.d(true)
+    log.d("Hello World!")
+    log.d({
+        aa: "Kkirodeasu",
+        cd: "Holla!",
+    })
+    log.d(["Hello", "World"])
+    const mapTest = new Map<string, number>()
+    mapTest.set("Test", 1123)
+    log.d(mapTest)
+}
 /*
 for (let i = 0; i < dongbaks.length; i += 1) {
     const ln = unicodeLn(dongbaks[i])

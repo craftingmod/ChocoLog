@@ -7,6 +7,7 @@ import { write } from "fs"
 import fs from "fs-extra"
 import fetch from "node-fetch"
 import StackTrace from "stack-trace"
+import stringify from "stringify-object"
 import stripAnsi from "strip-ansi"
 import uuidRand from "uuid/v4"
 import wcwidth from "wcwidth"
@@ -21,18 +22,20 @@ if (isDebug()) {
 }
 
 const defaultCodeCSS = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css"
-type LikeString = boolean | number | string | Buffer | Serializable
+type LikeString = Serializable | Map<string | number, Serializable>
 export class ChocoLog {
     public name = "chocolog"
+    protected stack = 0
     protected codeBackground = "#222222"
     protected codeTextColor = "#ffffff"
     protected codeStyle:Sheet = null
 
     protected brightDark = "#333333"
     protected defaultTheme = chalk.bgHex("#222222").hex("#eeeeee")
+    protected defaultTheme2 = chalk.bgHex("#292929").hex("#eeeeee")
     protected infoTheme = chalk.bgHex("#fce5e5").hex(this.brightDark)
+    protected lineTheme = chalk.bgHex("#e2e2e2").hex("#111111")
 
-    protected headerSize = 30
     protected middleSize = 3
     protected subpadSize = 1
 
@@ -40,6 +43,9 @@ export class ChocoLog {
 
     protected get width() {
         return process.stdout.columns
+    }
+    protected get headerSize() {
+        return Math.min(24, Math.floor(this.width / 4))
     }
     protected sourceMap:Map<string, TsMap> = new Map()
     // protected headerChalk = chalk.
@@ -52,7 +58,17 @@ export class ChocoLog {
         const [title, desc] = await this.fallbackParam(_title, _desc)
         return this.printSimple(title, desc, {
             tagName: "D",
-            colorTheme: "#a6db92",
+            colorTheme: chalk.bgHex(this.brightDark).hex("#a6db92"),
+            fontColor: "#dddddd",
+        })
+        // "#a6db92"
+    }
+    public async v(_title:LikeString, _desc?:LikeString) {
+        const [title, desc] = await this.fallbackParam(_title, _desc)
+        return this.printSimple(title, desc, {
+            tagName: "V",
+            colorTheme: chalk.bgHex(this.brightDark).hex("#ffd7ff"),
+            fontColor: "#dddddd",
         })
     }
     /*
@@ -136,7 +152,14 @@ export class ChocoLog {
      */
     protected toStr(obj:any) {
         if (obj instanceof Map) {
-            return ""
+            const out = {}
+            for (const [key, value] of obj.entries()) {
+                out[key] = value
+            }
+            return this.beautyJSON(stringify(out, {
+                indent: "  ",
+                singleQuotes: false,
+            }))
         }
         switch (typeof obj) {
             case "boolean":
@@ -148,8 +171,12 @@ export class ChocoLog {
                 return `[Function ${obj.name}]`
             case "undefined":
                 return `[undefined]`
-            case "object":
-                return JSON.stringify(obj, null, 2)
+            case "object": {
+                return stringify(obj, {
+                    indent: "  ",
+                    singleQuotes: false,
+                })
+            }
             default:
                 return ""
         }
@@ -159,10 +186,13 @@ export class ChocoLog {
             desc = this.toStr(title)
             title = `No Title`
         } else {
-            title = this.toStr(desc)
+            title = this.toStr(title)
             desc = this.toStr(desc)
         }
-        return [title, desc]
+        if (!ansiRegex().test(desc)) {
+            desc = this.beautyJSON(desc)
+        }
+        return [title as string, desc as string]
     }
     protected encodeCaller(called:Called) {
         return `${called.funcName} (${called.fileName}:${called.line}:${called.column})`
@@ -213,6 +243,12 @@ export class ChocoLog {
             column: sourceColumn,
         } as Called
     }
+    protected beautyCode(code:string) {
+        return emphasize.highlightAuto(code, this.codeStyle).value
+    }
+    protected beautyJSON(json:string) {
+        return emphasize.highlight("json", json, this.codeStyle).value
+    }
     protected get timestamp() {
         const time = new Date(Date.now())
         let h = time.getHours()
@@ -228,22 +264,51 @@ export class ChocoLog {
         const s = time.getSeconds()
         return `${isPM ? "P" : "A"}${pad(h)}:${pad(m)}:${pad(s)}`
     }
-    protected async printSimple(header:string, content:string, options:{tagName:string, colorTheme:string}) {
+    /**
+     * Print Content with split & color & beauty
+     *
+     * This can't be optimized.
+     * @param header
+     * @param content
+     * @param options
+     */
+    protected async printSimple(header:string, content:string, options:{
+        tagName:string, colorTheme:Chalk, fontColor:string}) {
         // define external properties
+        const theme1 = this.defaultTheme.hex(options.fontColor)
+        const theme2 = this.defaultTheme2.hex(options.fontColor)
+        let theme = options.colorTheme.hex(options.fontColor)
         const caller = this.encodeCaller(await this.caller(2))
-        const encHeader = this.defaultTheme.bgHex(options.colorTheme).hex(this.brightDark)(
-            this.getHeader(header, options.tagName),
-        )
-        const middleStyle = this.defaultTheme.bgHex(options.colorTheme).hex(this.brightDark)
-        const encMiddle = this.getMiddle(middleStyle, options.tagName)
+        const encHeader = theme(
+            `${this.getHeader(header)} `,
+        ) + options.colorTheme.inverse(
+            ` ${options.tagName.substr(0, 1)} `,
+        ) + theme1(" ")
+        const middleStyle = options.colorTheme.inverse
+        const encMiddle = `${this.getMiddle(middleStyle, options.tagName)}${theme(" ")}`
         const encBottom = this.infoTheme(
             this.getFooter(caller),
         )
         // split to fit
         const splitted = content.split("\n")
-        const lines:string[] = []
-        const maxLn0 = this.width - consoleLn(encHeader)
-        const maxLnA = this.width - consoleLn(encMiddle)
+        let largeDesign = false
+        if (splitted.length >= 3) {
+            const lengthes = splitted.map((v) => v.length)
+            let i = 0
+            for (const ln of lengthes) {
+                i += ln
+            }
+            splitted.splice(0, 0, `(${splitted.length}L, ${i}C,${this.getFooter(caller).trimRight()})`)
+            largeDesign = true
+        }
+        for (let i = 0; i < splitted.length; i += 1) {
+            if (splitted[i] === "") {
+                splitted[i] = " "
+            }
+        }
+        const lines:Array<{content:string, lineNo:number}> = []
+        let maxLn0 = this.width - consoleLn(encHeader) - 1
+        let maxLnA = this.width - consoleLn(encMiddle) - 1
         let lastStyle:string = null
         for (let i = 0; i < splitted.length; i += 1) {
             const line = splitted[i]
@@ -255,44 +320,75 @@ export class ChocoLog {
                 let text = textInfo.content
                 if (lastStyle != null && lastStyle.length > 0) {
                     text = lastStyle + text
+                    textInfo.lastStyle = ansiParser.getAtIndex(
+                        text, stripAnsi(text), stripAnsi(text).length - 1).style
                 }
                 lastStyle = textInfo.lastStyle
-                lines.push(text)
+                lines.push({
+                    content: text,
+                    lineNo: i + 1,
+                })
                 k += textInfo.original.length
                 maxLn = maxLnA
             }
+            if (lines.length >= 1) {
+                lastStyle = null
+                lines[lines.length - 1] = {
+                    content: lines[lines.length - 1].content + `\x1B[0m`,
+                    lineNo: i + 1,
+                }
+            }
         }
         // print
+        // padding to end. (add 1 length to pad End.)
+        maxLn0 += 1
+        maxLnA += 1
+        // tslint:disable-next-line
         let out = new String()
+        let lastLine = -1
         for (let i = 0; i < lines.length; i += 1) {
-            const line = lines[i]
+            const line = lines[i].content
+            const lineNo = lines[i].lineNo + (largeDesign ? -1 : 0)
+            theme = lines[i].lineNo % 2 === 1 ? theme1 : theme2
             let thisLine = ""
             if (i === 0) {
                 thisLine += encHeader
-                thisLine += this.defaultTheme(line.padEnd(line.length + maxLn0 - consoleLn(line)))
-            } else {
-                thisLine += this.getMiddle(middleStyle, (i + 1).toString().padStart(3))
+                thisLine += theme(line)
                 if (i < lines.length - 1) {
-                    thisLine += this.defaultTheme(line.padEnd(line.length + maxLnA - consoleLn(line)))
+                    thisLine += theme("".padEnd(maxLn0 - consoleLn(line)))
+                }
+            } else {
+                thisLine += `${this.getMiddle(middleStyle,
+                    (lastLine !== lineNo ? lineNo.toString() : "").padStart(this.middleSize))
+                    }${theme(" ")}`
+                if (i < lines.length - 1) {
+                    thisLine += theme(line) +
+                        theme("".padEnd(maxLnA - consoleLn(line)))
                 } else {
-                    thisLine += this.defaultTheme(line)
+                    thisLine += theme(line)
                 }
             }
             if (i === lines.length - 1) {
                 const left = this.width - consoleLn(stripAnsi(thisLine))
-                if (left >= consoleLn(encBottom)) {
+                if (largeDesign) {
+                    thisLine += theme("".padStart(this.width - consoleLn(thisLine)))
+                } else if (left >= consoleLn(encBottom)) {
+                    thisLine += theme("".padStart(left - consoleLn(encBottom)))
                     thisLine += encBottom
                 } else {
+                    thisLine += theme("".padStart(this.width - consoleLn(thisLine)))
                     thisLine += "\n"
-                    thisLine += this.defaultTheme(encBottom.padStart(this.width))
+                    thisLine += theme("".padStart(this.width - consoleLn(encBottom))) + encBottom
                 }
             } else {
                 thisLine += "\n"
             }
+            lastLine = lineNo
             out += thisLine
         }
         out += "\n"
-        await this.write(out.toString())
+        this.stack += 1
+        return this.write(out.toString())
     }
     /**
      * Get Header of logger
@@ -301,11 +397,11 @@ export class ChocoLog {
      * @param header To print header
      * @param typeStr To print type
      */
-    protected getHeader(header:string, typeStr:string) {
+    protected getHeader(header:string) {
         const headerCut = substrMono(header, 0, this.headerSize)
-        const padLn = headerCut.content.length + this.headerSize - headerCut.original.length
-        return `${this.infoTheme(" " + this.timestamp + " ")} ${
-            headerCut.content.padStart(padLn)} ${typeStr.padStart(this.middleSize)} `
+        const padLn = headerCut.content.length + this.headerSize - consoleLn(headerCut.original)
+        return `${
+            this.infoTheme(" " + this.timestamp + " ")} ${headerCut.content.padStart(padLn)}`
     }
     protected getMiddle(style:Chalk, typeStr:string) {
         const cutted = substrMono(typeStr, 0, this.headerSize)
@@ -313,7 +409,7 @@ export class ChocoLog {
             cutted.content.length + this.middleSize - cutted.original.length)} `)
     }
     protected getFooter(encodedCaller:string) {
-        return ` ${encodedCaller}`
+        return ` ${encodedCaller} `
     }
     protected async write(str:string) {
         return new Promise<void>((res, rej) => {

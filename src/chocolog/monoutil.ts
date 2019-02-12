@@ -55,7 +55,7 @@ export function substrMono(text:string, start:number, length:number) {
     const charsets = [...stripAnsi(text)]
     // https://stackoverflow.com/questions/45803829/memory-overhead-of-typed-arrays-vs-strings
     // tslint:disable-next-line
-    let out: string[] = []
+    let out:string[] = []
     // ansi escape positions
     const ansiCodes:string[] = ansiRegex().test(text) ? text.match(ansiRegex()) : []
     const ansiPosInfo = text.split(ansiRegex()).map((v) => v.length)
