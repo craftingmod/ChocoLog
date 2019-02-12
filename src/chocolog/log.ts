@@ -22,7 +22,8 @@ if (isDebug()) {
 }
 
 const defaultCodeCSS = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css"
-type LikeString = Serializable | Map<string | number, Serializable>
+type LikeString = Serializable | Map<string | number, Serializable> | Error
+
 export class ChocoLog {
     public name = "chocolog"
     protected stack = 0
@@ -52,7 +53,11 @@ export class ChocoLog {
     /*
     =====================================================
     = Define default methods
+    = Due to callback detector, we should copy-paste code.
     =====================================================
+    */
+   /**
+    * Debug log
     */
     public async d(_title:LikeString, _desc?:LikeString) {
         const [title, desc] = await this.fallbackParam(_title, _desc)
@@ -63,12 +68,80 @@ export class ChocoLog {
         })
         // "#a6db92"
     }
+    /**
+     * Verbose log
+     */
     public async v(_title:LikeString, _desc?:LikeString) {
         const [title, desc] = await this.fallbackParam(_title, _desc)
         return this.printSimple(title, desc, {
             tagName: "V",
             colorTheme: chalk.bgHex(this.brightDark).hex("#ffd7ff"),
             fontColor: "#dddddd",
+        })
+    }
+    /**
+     * Info log
+     */
+    public async i(_title:LikeString, _desc?:LikeString) {
+        const [title, desc] = await this.fallbackParam(_title, _desc)
+        return this.printSimple(title, desc, {
+            tagName: "I",
+            colorTheme: chalk.bgHex(this.brightDark).hex("#afd7ff"),
+            fontColor: "#dddddd",
+        })
+    }
+    /**
+     * Warning log
+     */
+    public async w(_title:LikeString, _desc?:LikeString) {
+        const [title, desc] = await this.fallbackParam(_title, _desc)
+        return this.printSimple(title, desc, {
+            tagName: "W",
+            colorTheme: chalk.bgHex(this.brightDark).hex("#fffacd"),
+            fontColor: "#dddddd",
+        })
+    }
+    /**
+     * Error log
+     */
+    public async e(_title:LikeString, _desc?:LikeString):Promise<null> {
+        const [title, desc] = await this.fallbackParam(_title, _desc)
+        return this.printSimple(title, desc, {
+            tagName: "E",
+            colorTheme: chalk.bgHex(this.brightDark).hex("#ff715b"),
+            fontColor: "#c64337",
+        }).then(() => null)
+    }
+    /**
+     * What the f***
+     */
+    public async wtf(_title:LikeString, _desc?:LikeString) {
+        let [title, desc] = await this.fallbackParam(_title, _desc)
+        desc = chalk.hex("#ffcbc6")(desc)
+        return this.printSimple(title, desc, {
+            tagName: "F",
+            colorTheme: chalk.bgHex("#660900").hex("#ff0000"),
+            fontColor: "#ffcbc6",
+        })
+    }
+    /**
+     * Log programming code with auto formatter
+     *
+     * used `highlight.js` wrapper `emphasize`
+     * @param _code Code string to print (css, js, etc...)
+     * @param _title Title of log, not need at normal.
+     */
+    public async code(_code:string, _title?:LikeString) {
+        if (_title == null) {
+            _title = "Code"
+        } else {
+            _title = await this.toStr(_title)
+        }
+        const desc = emphasize.highlightAuto(_code, this.codeStyle).value
+        return this.printSimple(await _title, desc, {
+            tagName: "C",
+            colorTheme: chalk.bgHex(this.codeBackground).hex(this.codeTextColor),
+            fontColor: this.codeTextColor,
         })
     }
     /*
@@ -150,7 +223,7 @@ export class ChocoLog {
      * something to string
      * @param obj any
      */
-    protected toStr(obj:any) {
+    protected async toStr(obj:any) {
         if (obj instanceof Map) {
             const out = {}
             for (const [key, value] of obj.entries()) {
@@ -161,12 +234,21 @@ export class ChocoLog {
                 singleQuotes: false,
             }))
         }
+        if (obj instanceof Error) {
+            const rawStacks = this.filterStack(StackTrace.parse(obj))
+            const stackes:string[] = []
+            for (const stack of rawStacks) {
+                stackes.push(this.encodeCaller(await this.decodeStack(stack)))
+            }
+            return `${obj.name} : ${obj.message}\n${stackes.map((v) => `  at ${v}`).join("\n")}`
+        }
         switch (typeof obj) {
+            case "string":
+                return obj
             case "boolean":
             case "number":
             case "bigint":
-            case "string":
-                return obj.toString()
+            return obj.toString()
             case "function":
                 return `[Function ${obj.name}]`
             case "undefined":
@@ -183,11 +265,11 @@ export class ChocoLog {
     }
     protected async fallbackParam(title:LikeString, desc:LikeString) {
         if (desc == null) {
-            desc = this.toStr(title)
-            title = `No Title`
+            desc = await this.toStr(title)
+            title = ` `
         } else {
-            title = this.toStr(title)
-            desc = this.toStr(desc)
+            title = await this.toStr(title)
+            desc = await this.toStr(desc)
         }
         if (!ansiRegex().test(desc)) {
             desc = this.beautyJSON(desc)
@@ -198,14 +280,16 @@ export class ChocoLog {
         return `${called.funcName} (${called.fileName}:${called.line}:${called.column})`
     }
     protected async caller(deeper:number) {
-        const detailStackes = StackTrace.get()
-        const stackes = detailStackes.filter((v, pos) => {
-            return detailStackes.findIndex((_v) =>
+        const stackes = this.filterStack(StackTrace.get())
+        const query = stackes[1 + deeper]
+        return this.decodeStack(query)
+    }
+    protected filterStack(stacktrace:StackTrace.StackFrame[]) {
+        return stacktrace.filter((v, pos) => {
+            return stacktrace.findIndex((_v) =>
                 _v.getFunctionName() === v.getFunctionName() && _v.getFileName() === v.getFileName())
                 === pos
         })
-        const query = stackes[1 + deeper]
-        return this.decodeStack(query)
     }
     protected async decodeStack(query:StackTrace.StackFrame) {
         // const lastEl = <T>(arr:T[]) => arr[arr.length - 1]
@@ -277,7 +361,7 @@ export class ChocoLog {
         // define external properties
         const theme1 = this.defaultTheme.hex(options.fontColor)
         const theme2 = this.defaultTheme2.hex(options.fontColor)
-        let theme = options.colorTheme.hex(options.fontColor)
+        let theme = options.colorTheme /*.hex(options.fontColor) */
         const caller = this.encodeCaller(await this.caller(2))
         const encHeader = theme(
             `${this.getHeader(header)} `,
@@ -298,7 +382,7 @@ export class ChocoLog {
             for (const ln of lengthes) {
                 i += ln
             }
-            splitted.splice(0, 0, `(${splitted.length}L, ${i}C,${this.getFooter(caller).trimRight()})`)
+            splitted.splice(0, 0, chalk.italic(`${splitted.length}L, ${i}C,${this.getFooter(caller).trimRight()}`))
             largeDesign = true
         }
         for (let i = 0; i < splitted.length; i += 1) {
@@ -466,3 +550,7 @@ function isDebug() {
 function toStringStack(stack:StackTrace.StackFrame) {
     return `${stack.getFunctionName()} (${stack.getFileName()}:${stack.getLineNumber()}:${stack.getColumnNumber()})`
 }
+
+const chocolog = new ChocoLog()
+
+export default chocolog

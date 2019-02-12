@@ -1,12 +1,6 @@
-import chalk from "chalk"
-import emphasize, { Sheet } from "emphasize"
 import fs from "fs"
-import stripAnsi from "strip-ansi"
-import wcwidth from "wcwidth"
-import { ChocoLog } from "./chocolog/log"
-import { substrMono } from "./chocolog/monoutil"
-import TsMap from "./chocolog/tsmap"
 import { dongbak } from "./dongbak"
+import log, { ChocoLog } from "./index"
 
 console.log("Hello World")
 
@@ -14,8 +8,8 @@ console.log("Hello World")
 async function run() {
     const cssurl = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css"
     const vscss = await new ChocoLog().setCodeTheme(cssurl)
-    const dongbaks = emphasize.highlightAuto(fs.readFileSync("./example.js", "utf8"), vscss as Sheet).value.split("\n")
-    const log = new ChocoLog()
+    const dongbaks = fs.readFileSync("./example.js", "utf8")
+    // const log = new ChocoLog()
     await log.setCodeTheme(cssurl)
     await log.v("끼로데수", {
         aa: 53,
@@ -27,9 +21,10 @@ async function run() {
         },
     })
     await log.v(5353, 7777 + " 덕지덕지해~ " + true)
-    await log.d("한글", true)
-    await log.d(7777)
-    await log.d(dongbaks.join("\n"))
+    await log.w("한글", true)
+    await log.wtf(7777)
+    await log.e(new Error("Hello!"))
+    await log.code(dongbaks)
     await log.d(dongbak)
 }
 run()
@@ -38,7 +33,6 @@ async function test() {
     await log.setDefaultTheme()
     log.d(5353)
     log.d(true)
-    log.d("Hello World!")
     log.d({
         aa: "Kkirodeasu",
         cd: "Holla!",
