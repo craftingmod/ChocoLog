@@ -2,9 +2,9 @@
   "name": "chocolog",
   "version": "1.0.0",
   "description": "Wha Choco",
-  "main": "build/main/index.js",
-  "typings": "build/main/index.d.ts",
-  "module": "build/module/index.js",
+  "main": "build/index.js",
+  "typings": "build/index.d.ts",
+  "module": "dist/index.js",
   "repository": "https://github.com/craftingmod/chocolog",
   "license": "MIT",
   "keywords": [],
@@ -19,7 +19,7 @@
   "engines": {
     "node": ">=8.9"
   },
-  "types": "build/index.d.ts",
+  "types": "dist/index.d.ts",
   "dependencies": {
     "@types/ansi-regex": "^4.0.0",
     "@types/color": "^3.0.0",
