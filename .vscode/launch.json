@@ -10,7 +10,7 @@
       // automatically run the currently visible file with: "program": ${file}"
       "program": "${workspaceFolder}/src/launch.ts",
       // "args": ["--no-install"],
-      "outFiles": ["${workspaceFolder}/build/main/**/*.js"],
+      "outFiles": ["${workspaceFolder}/build/**/*.js"],
       "skipFiles": [
         "<node_internals>/**/*.js",
         "${workspaceFolder}/node_modules/**/*.js"

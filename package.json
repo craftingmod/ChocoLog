@@ -19,6 +19,7 @@
   "engines": {
     "node": ">=8.9"
   },
+  "types": "build/index.d.ts",
   "dependencies": {
     "@types/ansi-regex": "^4.0.0",
     "@types/color": "^3.0.0",
