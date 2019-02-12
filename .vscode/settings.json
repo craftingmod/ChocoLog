@@ -1,7 +1,8 @@
 {
   "typescript.tsdk": "node_modules/typescript/lib",
   "files.watcherExclude": {
-    "**/build": true
+    "**/build": true,
+    "**/dist": true
   }
   // "typescript.implementationsCodeLens.enabled": true
   // "typescript.referencesCodeLens.enabled": true
