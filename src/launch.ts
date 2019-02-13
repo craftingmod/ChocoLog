@@ -22,8 +22,6 @@ async function run() {
     })
     await log.v(5353, 7777 + " 덕지덕지해~ " + true)
     await log.w("한글", true)
-    await log.wtf(7777)
-    await log.e(new Error("Hello!"))
     await log.code(dongbaks)
     await log.d(dongbak)
 }
@@ -58,6 +56,9 @@ for (let i = 0; i < dongbaks.length; i += 1) {
     console.log(part)
 }
 */
+interface InterF {
+    tesT:number,
+}
 
 function logUnicode() {
     for (let i = 0; i <= 255; i += 1) {

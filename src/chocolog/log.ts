@@ -11,7 +11,7 @@ import stringify from "stringify-object"
 import stripAnsi from "strip-ansi"
 import uuidRand from "uuid/v4"
 import wcwidth from "wcwidth"
-import { Serializable } from "../types/serialize"
+import { Serializable, SerializableGeneric, Serializify } from "../types/serialize"
 import { consoleLn, padEndMono, substrMono } from "./monoutil"
 import TsMap from "./tsmap"
 if (isDebug()) {
@@ -23,6 +23,7 @@ if (isDebug()) {
 
 const defaultCodeCSS = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css"
 type LikeString = Serializable | Map<string | number, Serializable> | Error
+type GenericString<S> = SerializableGeneric<S> | LikeString
 
 export class ChocoLog {
     public name = "chocolog"
@@ -59,7 +60,7 @@ export class ChocoLog {
    /**
     * Debug log
     */
-    public async d(_title:LikeString, _desc?:LikeString) {
+    public async d<T, D>(_title:GenericString<T>, _desc?:GenericString<D>) {
         const [title, desc] = await this.fallbackParam(_title, _desc)
         return this.printSimple(title, desc, {
             tagName: "D",
@@ -71,7 +72,7 @@ export class ChocoLog {
     /**
      * Verbose log
      */
-    public async v(_title:LikeString, _desc?:LikeString) {
+    public async v<T, D>(_title:GenericString<T>, _desc?:GenericString<D>) {
         const [title, desc] = await this.fallbackParam(_title, _desc)
         return this.printSimple(title, desc, {
             tagName: "V",
@@ -82,7 +83,7 @@ export class ChocoLog {
     /**
      * Info log
      */
-    public async i(_title:LikeString, _desc?:LikeString) {
+    public async i<T, D>(_title:GenericString<T>, _desc?:GenericString<D>) {
         const [title, desc] = await this.fallbackParam(_title, _desc)
         return this.printSimple(title, desc, {
             tagName: "I",
@@ -93,7 +94,7 @@ export class ChocoLog {
     /**
      * Warning log
      */
-    public async w(_title:LikeString, _desc?:LikeString) {
+    public async w<T, D>(_title:GenericString<T>, _desc?:GenericString<D>) {
         const [title, desc] = await this.fallbackParam(_title, _desc)
         return this.printSimple(title, desc, {
             tagName: "W",
@@ -104,7 +105,7 @@ export class ChocoLog {
     /**
      * Error log
      */
-    public async e(_title:LikeString, _desc?:LikeString):Promise<null> {
+    public async e<T, D>(_title:GenericString<T>, _desc?:GenericString<D>):Promise<null> {
         const [title, desc] = await this.fallbackParam(_title, _desc)
         return this.printSimple(title, desc, {
             tagName: "E",
@@ -115,7 +116,7 @@ export class ChocoLog {
     /**
      * What the f***
      */
-    public async wtf(_title:LikeString, _desc?:LikeString) {
+    public async wtf<T, D>(_title:GenericString<T>, _desc?:GenericString<D>) {
         let [title, desc] = await this.fallbackParam(_title, _desc)
         desc = chalk.hex("#ffcbc6")(desc)
         return this.printSimple(title, desc, {
@@ -131,7 +132,7 @@ export class ChocoLog {
      * @param _code Code string to print (css, js, etc...)
      * @param _title Title of log, not need at normal.
      */
-    public async code(_code:string, _title?:LikeString) {
+    public async code<T>(_code:string, _title?:GenericString<T>) {
         if (_title == null) {
             _title = "Code"
         } else {
