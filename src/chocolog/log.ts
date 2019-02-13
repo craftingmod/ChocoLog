@@ -562,6 +562,5 @@ function toStringStack(stack:StackTrace.StackFrame) {
 }
 
 const chocolog = new ChocoLog()
-export const cLog = chocolog
 
 export default chocolog

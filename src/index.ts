@@ -3,3 +3,5 @@ export { ChocoLog } from "./chocolog/log"
 export * from "./chocolog/tsmap"
 
 export default log
+
+export const cLog = log

@@ -548,6 +548,5 @@ function toStringStack(stack) {
     return `${stack.getFunctionName()} (${stack.getFileName()}:${stack.getLineNumber()}:${stack.getColumnNumber()})`;
 }
 const chocolog = new ChocoLog();
-exports.cLog = chocolog;
 exports.default = chocolog;
 //# sourceMappingURL=log.js.map

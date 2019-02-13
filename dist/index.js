@@ -11,4 +11,5 @@ var log_2 = require("./chocolog/log");
 exports.ChocoLog = log_2.ChocoLog;
 __export(require("./chocolog/tsmap"));
 exports.default = log_1.default;
+exports.cLog = log_1.default;
 //# sourceMappingURL=index.js.map

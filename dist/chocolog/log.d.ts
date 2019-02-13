@@ -120,5 +120,4 @@ interface Called {
     column: number;
 }
 declare const chocolog: ChocoLog;
-export declare const cLog: ChocoLog;
 export default chocolog;
