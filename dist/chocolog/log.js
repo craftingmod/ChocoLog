@@ -10,6 +10,7 @@ const color_1 = __importDefault(require("color"));
 const emphasize_1 = __importDefault(require("emphasize"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const node_fetch_1 = __importDefault(require("node-fetch"));
+const path_1 = __importDefault(require("path"));
 const stack_trace_1 = __importDefault(require("stack-trace"));
 const stringify_object_1 = __importDefault(require("stringify-object"));
 const strip_ansi_1 = __importDefault(require("strip-ansi"));
@@ -311,13 +312,19 @@ class ChocoLog {
             const sourceMap = this.sourceMap.get(sourcepath);
             const info = sourceMap.decodePoint(sourceLine, sourceColumn);
             if (info != null) {
-                sourcepath = sourceMap.getFilePath(this.cwd, false);
+                sourcepath = path_1.default.relative(this.cwd, sourceMap.getFilePath());
                 sourceLine = info.tsRow;
                 sourceColumn = info.tsColumn;
             }
             else {
                 console.error(new Error("Info is null!"));
             }
+        }
+        else {
+            sourcepath = path_1.default.relative(this.cwd, sourcepath);
+        }
+        if (!sourcepath.startsWith(".")) {
+            sourcepath = `.${path_1.default.sep}${sourcepath}`;
         }
         return {
             fileName: sourcepath,

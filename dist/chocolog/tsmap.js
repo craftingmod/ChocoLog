@@ -126,13 +126,7 @@ class TsMap {
         mp.tsRow += 1;
         return mp;
     }
-    getFilePath(cwd, absolute = false) {
-        if (cwd.endsWith(path_1.default.sep)) {
-            cwd = cwd.substring(0, cwd.length - 1);
-        }
-        if (!absolute && this.tsPath.startsWith(cwd)) {
-            return this.tsPath.replace(cwd, ".");
-        }
+    getFilePath() {
         return this.tsPath;
     }
 }

@@ -35,7 +35,7 @@ export default class TsMap {
      * @param column 1-index column
      */
     decodePoint(line: number, column: number): TsMapColumn;
-    getFilePath(cwd: string, absolute?: boolean): string;
+    getFilePath(): string;
 }
 interface TsMapColumn {
     jsColumn: number;
