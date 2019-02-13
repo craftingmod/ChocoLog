@@ -32,8 +32,6 @@ async function run() {
     });
     await index_1.default.v(5353, 7777 + " 덕지덕지해~ " + true);
     await index_1.default.w("한글", true);
-    await index_1.default.wtf(7777);
-    await index_1.default.e(new Error("Hello!"));
     await index_1.default.code(dongbaks);
     await index_1.default.d(dongbak_1.dongbak);
 }
@@ -52,22 +50,6 @@ async function test() {
     mapTest.set("Test", 1123);
     log.d(mapTest);
 }
-/*
-for (let i = 0; i < dongbaks.length; i += 1) {
-    const ln = unicodeLn(dongbaks[i])
-    let k = 0
-    let u = 0
-    let part:string
-    while (k + u < ln) {
-        part = substringMono(dongbaks[i], k, Math.min(ln, k + u + process.stdout.columns))
-        u = unicodeLn(part)
-    }
-    k += u
-    u = 0
-    splits.push(part)
-    console.log(part)
-}
-*/
 function logUnicode() {
     for (let i = 0; i <= 255; i += 1) {
         for (let j = 0; j < 16; j += 1) {

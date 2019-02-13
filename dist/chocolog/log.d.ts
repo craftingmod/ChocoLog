@@ -1,9 +1,10 @@
 import { Chalk } from "chalk";
 import { Sheet } from "emphasize";
 import StackTrace from "stack-trace";
-import { Serializable } from "../types/serialize";
+import { Serializable, SerializableGeneric } from "../types/serialize";
 import TsMap from "./tsmap";
 declare type LikeString = Serializable | Map<string | number, Serializable> | Error;
+declare type GenericString<S> = SerializableGeneric<S> | LikeString;
 export declare class ChocoLog {
     name: string;
     protected stack: number;
@@ -32,27 +33,27 @@ export declare class ChocoLog {
     /**
      * Debug log
      */
-    d(_title: LikeString, _desc?: LikeString): Promise<void>;
+    d<T, D>(_title: GenericString<T>, _desc?: GenericString<D>): Promise<void>;
     /**
      * Verbose log
      */
-    v(_title: LikeString, _desc?: LikeString): Promise<void>;
+    v<T, D>(_title: GenericString<T>, _desc?: GenericString<D>): Promise<void>;
     /**
      * Info log
      */
-    i(_title: LikeString, _desc?: LikeString): Promise<void>;
+    i<T, D>(_title: GenericString<T>, _desc?: GenericString<D>): Promise<void>;
     /**
      * Warning log
      */
-    w(_title: LikeString, _desc?: LikeString): Promise<void>;
+    w<T, D>(_title: GenericString<T>, _desc?: GenericString<D>): Promise<void>;
     /**
      * Error log
      */
-    e(_title: LikeString, _desc?: LikeString): Promise<null>;
+    e<T, D>(_title: GenericString<T>, _desc?: GenericString<D>): Promise<null>;
     /**
      * What the f***
      */
-    wtf(_title: LikeString, _desc?: LikeString): Promise<void>;
+    wtf<T, D>(_title: GenericString<T>, _desc?: GenericString<D>): Promise<void>;
     /**
      * Log programming code with auto formatter
      *
@@ -60,7 +61,7 @@ export declare class ChocoLog {
      * @param _code Code string to print (css, js, etc...)
      * @param _title Title of log, not need at normal.
      */
-    code(_code: string, _title?: LikeString): Promise<void>;
+    code<T>(_code: string, _title?: GenericString<T>): Promise<void>;
     setDefaultTheme(): Promise<{
         [x: string]: Chalk;
     }>;

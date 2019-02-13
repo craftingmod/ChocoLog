@@ -1,4 +1,13 @@
 /**
+ * Serializible-Generic
+ */
+export declare type SerializableGeneric<T> = T extends (infer R)[] ? SerialArrayGeneric<R> : T extends Function ? never : T extends object ? SerialObjectGeneric<T> : T extends Serializable ? T : never;
+declare type SerialObjectGeneric<T> = {
+    [P in keyof T]: SerializableGeneric<T[P]>;
+};
+interface SerialArrayGeneric<T> extends Array<SerializableGeneric<T>> {
+}
+/**
  * Serializable type defintion.
  */
 export declare type Serializable = string | number | boolean | SerializeObject | SerializeArray;
