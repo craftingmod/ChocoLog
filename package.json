@@ -1,7 +1,7 @@
 {
   "name": "chocolog",
-  "version": "1.0.0",
-  "description": "Wha Choco",
+  "version": "1.0.1",
+  "description": "A simple colorful logcat",
   "main": "dist/index.js",
   "types": "./dist/index.d.ts",
   "repository": "https://gitlab.com/craftingmod/chocolog",
