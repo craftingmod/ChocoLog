@@ -473,6 +473,9 @@ class ChocoLog {
         }
         out += "\n";
         this.stack += 1;
+        if (!isDebug()) {
+            return;
+        }
         return this.write(out.toString());
     }
     /**
