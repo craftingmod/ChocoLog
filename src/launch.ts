@@ -1,31 +1,42 @@
 import fs from "fs"
 import { dongbak } from "./dongbak"
-import log, { ChocoLog } from "./index"
+import Log, { ChocoLog } from "./index"
 
 console.log("Hello World")
 
 // https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css
 async function run() {
+    // tslint:disable-next-line
     const cssurl = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css"
     const vscss = await new ChocoLog().setCodeTheme(cssurl)
-    const dongbaks = fs.readFileSync("./example.js", "utf8")
     // const log = new ChocoLog()
-    await log.setCodeTheme(cssurl)
-    await log.v("끼로데수", {
-        aa: 53,
-        bb: "안뇽",
-        cc: true,
-        dd: {
-            ee: "haha",
-            ff: 53,
-        },
-    })
-    await log.v(5353, 7777 + " 덕지덕지해~ " + true)
-    await log.w("한글", true)
-    await log.code(dongbaks)
-    await log.d(dongbak)
+    await Log.setCodeTheme(cssurl)
+    await Log.i("Information")
+    await Log.e(new Error("Sample Error"))
+    await Log.v("Header is awesome", 7777 + " 덕지덕지해~ " + true)
+    await Log.w("한글지원", true)
+    await Log.d(dongbak.substring(0, 200))
+    await Log.code(`
+require('trace');
+require('clarify');
+
+const crypto = require('crypto');
+const fs = require('fs');
+
+fs.readFile(__filename, function () {
+  crypto.randomBytes(256, function () {
+    process.nextTick(function () {
+      throw new Error('custom error');
+    });
+  });
+});
+`)
+    for (let i = 0; i < 100; i += 1) {
+        await Log.d("Loop " + i)
+    }
 }
 run()
+// logUnicode()
 async function test() {
     const log = new ChocoLog()
     await log.setDefaultTheme()
@@ -62,8 +73,9 @@ interface InterF {
 
 function logUnicode() {
     for (let i = 0; i <= 255; i += 1) {
+        let block:string = ""
         for (let j = 0; j < 16; j += 1) {
-            process.stdout.write((i * 16 * 16 + j * 16).toString(16).toUpperCase().padStart(4, "0") + " ")
+            block += (i * 16 * 16 + j * 16).toString(16).toUpperCase().padStart(4, "0") + " "
             for (let k = 0; k < 16; k += 1) {
                 const n = k + j * 16 + i * 16 * 16
                 if (n >= 0x10000) {
@@ -72,11 +84,11 @@ function logUnicode() {
                 if (i === 0 && j === 9) {
                     break
                 }
-                process.stdout.write(String.fromCodePoint(n))
-                process.stdout.write("|")
+                block += String.fromCodePoint(n)
+                block += "|"
             }
-            process.stdout.write("\n")
+            block += "\n"
         }
-        process.stdout.write("\n==============\n")
+        Log.i("Unicode", block)
     }
 }
