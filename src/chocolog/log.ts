@@ -6,6 +6,7 @@ import emphasize, { Sheet } from "emphasize"
 import { write } from "fs"
 import fs from "fs-extra"
 import fetch from "node-fetch"
+import path from "path"
 import StackTrace from "stack-trace"
 import stringify from "stringify-object"
 import stripAnsi from "strip-ansi"
@@ -314,12 +315,17 @@ export class ChocoLog {
             const sourceMap = this.sourceMap.get(sourcepath)
             const info = sourceMap.decodePoint(sourceLine, sourceColumn)
             if (info != null) {
-                sourcepath = sourceMap.getFilePath(this.cwd, false)
+                sourcepath = path.relative(this.cwd, sourceMap.getFilePath())
                 sourceLine = info.tsRow
                 sourceColumn = info.tsColumn
             } else {
                 console.error(new Error("Info is null!"))
             }
+        } else {
+            sourcepath = path.relative(this.cwd, sourcepath)
+        }
+        if (!sourcepath.startsWith(".")) {
+            sourcepath = `.${path.sep}${sourcepath}`
         }
         return {
             fileName: sourcepath,

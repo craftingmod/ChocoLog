@@ -125,13 +125,7 @@ export default class TsMap {
         mp.tsRow += 1
         return mp
     }
-    public getFilePath(cwd:string, absolute = false) {
-        if (cwd.endsWith(path.sep)) {
-            cwd = cwd.substring(0, cwd.length - 1)
-        }
-        if (!absolute && this.tsPath.startsWith(cwd)) {
-            return this.tsPath.replace(cwd, ".")
-        }
+    public getFilePath() {
         return this.tsPath
     }
 }
