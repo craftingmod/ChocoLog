@@ -8,7 +8,7 @@ console.log("Hello World")
 async function run() {
     // tslint:disable-next-line
     const cssurl = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css"
-    const vscss = await new ChocoLog().setCodeTheme(cssurl)
+    const vscss = await new ChocoLog("Test").setCodeTheme(cssurl)
     // const log = new ChocoLog()
     await Log.setCodeTheme(cssurl)
     await Log.i("Information")
@@ -38,7 +38,7 @@ fs.readFile(__filename, function () {
 run()
 // logUnicode()
 async function test() {
-    const log = new ChocoLog()
+    const log = new ChocoLog("Test")
     await log.setDefaultTheme()
     log.d(5353)
     log.d(true)

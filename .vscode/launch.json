@@ -21,9 +21,9 @@
       "runtimeArgs": ["--nolazy"],
       "env": {
         "TYPESCRIPT_STARTER_REPO_URL": "${workspaceFolder}",
-        "DEBUG": "*",
+        "CLOG_ORIGIN": "true",
       },
-      "console": "externalTerminal"
+      "console": "integratedTerminal"
     },
     {
       "type": "node",
