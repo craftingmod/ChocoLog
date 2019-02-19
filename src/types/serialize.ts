@@ -2,7 +2,7 @@
 /**
  * Serializible-Generic
  */
-export type SerializableGeneric<T> = 
+export type SerializableGeneric<T> =
     T extends (infer R)[] ? SerialArrayGeneric<R> :
     T extends Function ? never :
     T extends object ? SerialObjectGeneric<T> :

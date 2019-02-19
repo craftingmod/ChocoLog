@@ -1,36 +1,36 @@
 import fs from "fs"
 import { dongbak } from "./dongbak"
-import Log, { ChocoLog } from "./index"
+import { ChocoLog, cLog } from "./index"
 
 console.log("Hello World")
 
+// tslint:disable-next-line
+const Log = cLog.getLogger("tester")
 // https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css
 async function run() {
     // tslint:disable-next-line
     const cssurl = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css"
-    const vscss = await new ChocoLog("Test").setCodeTheme(cssurl)
     // const log = new ChocoLog()
-    await Log.setCodeTheme(cssurl)
-    await Log.i("Information")
-    await Log.e(new Error("Sample Error"))
-    await Log.v("Header is awesome", 7777 + " 덕지덕지해~ " + true)
-    await Log.w("한글지원", true)
-    await Log.d(dongbak.substring(0, 200))
-    await Log.code(`
-require('trace');
-require('clarify');
-
-const crypto = require('crypto');
-const fs = require('fs');
-
-fs.readFile(__filename, function () {
-  crypto.randomBytes(256, function () {
-    process.nextTick(function () {
-      throw new Error('custom error');
-    });
-  });
-});
-`)
+    await Log.setDefaultTheme()
+    Log.enableAll()
+    Log.use12Hour = true
+    const testMap = new Map<string, string>()
+    testMap.set("5353", "Test")
+    await Log.v("Object Test", {
+        a: 53,
+        b: "Hello",
+        c: {
+            d: "5353",
+            e: new Error("Test"),
+            f: {
+                g: "Recursive",
+                h: true,
+                i: [53, 77],
+            },
+            k: testMap,
+            i: () => "test",
+        },
+    })
     for (let i = 0; i < 100; i += 1) {
         await Log.d("Loop " + i)
     }

@@ -27,13 +27,17 @@ if (useOrigin()) {
 
 const defaultCodeCSS = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css"
 type _LikeString = Serializable | Map<string | number, Serializable> | Error
-type LikeString<S> = SerializableGeneric<S> | _LikeString
+type LikeString<S> = S extends _LikeString ? S : SerializableGeneric<S> | any
+type MapLikeString<S extends any[]> = {
+    [K in keyof S]: LikeString<S[K]>
+}
 
 export class ChocoLog {
+    protected static defaultLevel = LogLv.ALL
     /**
      * Default name of header
      */
-    public readonly name:string
+    public name:string
     /**
      * Use AM/PM instead of 24-hours?
      */
@@ -44,11 +48,16 @@ export class ChocoLog {
     public minHeaderSize = 24
     // ========================================================
     /**
-     * Log Levels configure
+     * Log Levels defines
      */
     public readonly levels = asReadonly({...LogLvStatic})
-    protected logLevel:LogLv = LogLv.ALL
-    protected stack = 0
+    /**
+     * Current log level
+     */
+    protected logLevel:LogLv
+    /**
+     * Code theme store
+     */
     protected codeBackground = "#222222"
     protected codeTextColor = "#ffffff"
     protected codeStyle:Sheet = null
@@ -56,8 +65,7 @@ export class ChocoLog {
      * General colors (all used to type)
      */
     protected generalColors = {
-        mainBack: "#222222",
-        subBack: "#292929",
+        back: "#222222",
         text: "#eeeeee",
     }
     protected typedColors = {
@@ -74,15 +82,7 @@ export class ChocoLog {
      * Used in text content
      */
     protected get defaultTheme() {
-        return chalk.bgHex(this.generalColors.mainBack).hex(this.generalColors.text)
-    }
-    /**
-     * Subline Theme
-     *
-     * Used in 2,4,...,2n line's theme (to watch seperated better)
-     */
-    protected get sublineTheme() {
-        return chalk.bgHex(this.generalColors.subBack).hex(this.generalColors.text)
+        return chalk.bgHex(this.generalColors.back).hex(this.generalColors.text)
     }
 
     protected brightDark = "#333333"
@@ -104,6 +104,7 @@ export class ChocoLog {
     // protected headerChalk = chalk.
     public constructor(name:string) {
         this.name = name
+        this.logLevel = ChocoLog.defaultLevel
     }
     /*
     =====================================================
@@ -114,69 +115,76 @@ export class ChocoLog {
    /**
     * Debug log
     */
-    public async d<T, D>(_title:LikeString<T>, _desc?:LikeString<D>) {
-        const [title, desc] = await this.fallbackParam(_title, _desc)
+    public d<T, D extends any[]>(_title:LikeString<T>, ..._desc:MapLikeString<D>) {
+        const [title, desc] = this.fallbackParam(_title, _desc)
         return this.printSimple(title, desc, {
             tagName: "D",
             colorTheme: this.typedColors.debug,
             fontColor: this.generalColors.text,
+            level: this.levels.DEBUG,
         })
         // "#a6db92"
     }
     /**
      * Verbose log
      */
-    public async v<T, D>(_title:LikeString<T>, _desc?:LikeString<D>) {
-        const [title, desc] = await this.fallbackParam(_title, _desc)
+    public v<T, D extends any[]>(_title:LikeString<T>, ..._desc:MapLikeString<D>) {
+        const [title, desc] = this.fallbackParam(_title, _desc)
         return this.printSimple(title, desc, {
             tagName: "V",
             colorTheme: this.typedColors.verbose,
             fontColor: this.generalColors.text,
+            level: this.levels.VERBOSE,
         })
     }
     /**
      * Info log
      */
-    public async i<T, D>(_title:LikeString<T>, _desc?:LikeString<D>) {
-        const [title, desc] = await this.fallbackParam(_title, _desc)
+    public i<T, D extends any[]>(_title:LikeString<T>, ..._desc:MapLikeString<D>) {
+        const [title, desc] = this.fallbackParam(_title, _desc)
         return this.printSimple(title, desc, {
             tagName: "I",
             colorTheme: this.typedColors.info,
             fontColor: this.generalColors.text,
+            level: this.levels.INFO,
         })
     }
     /**
      * Warning log
      */
-    public async w<T, D>(_title:LikeString<T>, _desc?:LikeString<D>) {
-        const [title, desc] = await this.fallbackParam(_title, _desc)
+    public w<T, D extends any[]>(_title:LikeString<T>, ..._desc:MapLikeString<D>) {
+        const [title, desc] = this.fallbackParam(_title, _desc)
         return this.printSimple(title, desc, {
             tagName: "W",
             colorTheme: this.typedColors.warn,
             fontColor: this.generalColors.text,
+            level: this.levels.WARN,
         })
     }
     /**
      * Error log
      */
-    public async e<T, D>(_title:LikeString<T>, _desc?:LikeString<D>):Promise<null> {
-        const [title, desc] = await this.fallbackParam(_title, _desc)
-        return this.printSimple(title, desc, {
+    public e<T, D extends any[]>(_title:LikeString<T>, ..._desc:MapLikeString<D>):Promise<null> {
+        const [title, desc] = this.fallbackParam(_title, _desc)
+        this.printSimple(title, desc, {
             tagName: "E",
             colorTheme: this.typedColors.error,
             fontColor: this.typedColors.error,
-        }).then(() => null)
+            level: this.levels.ERROR,
+        })
+        return null
     }
     /**
-     * What the f***
+     * OMG
      */
-    public async wtf<T, D>(_title:LikeString<T>, _desc?:LikeString<D>) {
-        let [title, desc] = await this.fallbackParam(_title, _desc)
+    public wtf<T, D extends any[]>(_title:LikeString<T>, ..._desc:MapLikeString<D>) {
+        let [title, desc] = this.fallbackParam(_title, _desc)
         desc = chalk.hex("#ffcbc6")(desc)
         return this.printSimple(title, desc, {
             tagName: "F",
             colorTheme: this.typedColors.assert,
             fontColor: this.typedColors.assert,
+            level: this.levels.ASSERT,
         })
     }
     /**
@@ -186,18 +194,20 @@ export class ChocoLog {
      * @param _code Code string to print (css, js, etc...)
      * @param _title Title of log, not need at normal.
      */
-    public async code<T>(_code:string, _title?:LikeString<T>) {
+    public code<T>(_code:string, _title?:LikeString<T>) {
+        let title:string
         if (_title == null) {
-            _title = "Code"
+            title = "Code"
         } else {
-            _title = await this.toStr(_title)
+            title = this.toStr(_title)
         }
         const desc = emphasize.highlightAuto(_code, this.codeStyle).value
-        return this.printSimple(await _title, desc, {
+        return this.printSimple(title, desc, {
             tagName: "C",
             colorTheme: this.codeTextColor,
             fontColor: this.codeTextColor,
             backColor: this.codeBackground,
+            level: this.levels.VERBOSE,
         })
     }
     /*
@@ -308,21 +318,24 @@ export class ChocoLog {
      * @param level The minimum level to want logging
      */
     public setLevel(level:LogLv | keyof typeof LogLvStatic) {
-        let setLog:-1 | LogLv = -1
-        if (typeof level === "string") {
-            for (const [key, value] of Object.entries(this.levels)) {
-                if (key.toUpperCase() === level.toUpperCase()) {
-                    setLog = value
-                    break
-                }
-            }
-        } else {
-            setLog = level
-        }
+        const setLog = this.decodeLogLevel(level)
         if (setLog === -1) {
             return
         }
         this.logLevel = setLog
+    }
+    /**
+     * Set default loglevel to `level`
+     *
+     * This doesn't applies copied object but will be copyed object
+     * @param level The minimum level to want logging
+     */
+    public setDefaultLevel(level:LogLv | keyof typeof LogLvStatic) {
+        const setLog = this.decodeLogLevel(level)
+        if (setLog === -1) {
+            return
+        }
+        ChocoLog.defaultLevel = setLog
     }
     /**
      * Enable all log messages
@@ -350,7 +363,7 @@ export class ChocoLog {
     public getLogger(name:string):ChocoLog {
         const cloned = new ChocoLog(name)
         // level
-        cloned.setLevel(cloned.getLevel())
+        cloned.setLevel(ChocoLog.defaultLevel)
         // code style
         cloned.codeStyle = this.codeStyle
         cloned.codeTextColor = this.codeTextColor
@@ -363,27 +376,86 @@ export class ChocoLog {
         return cloned
     }
     /**
+     * The only part to need "File IO"
+     * @param err
+     */
+    protected errorToString(err:Error) {
+        const rawStacks = this.filterStack(StackTrace.parse(err))
+        const stackes:string[] = []
+        for (const stack of rawStacks) {
+            stackes.push(this.encodeCaller(this.decodeStack(stack)))
+        }
+        return `${err.name} : ${err.message}\n${stackes.map((v) => `  at ${v}`).join("\n")}`
+    }
+    protected decodeLogLevel(level:LogLv | keyof typeof LogLvStatic) {
+        if (typeof level === "string") {
+            for (const [key, value] of Object.entries(this.levels)) {
+                if (key.toUpperCase() === level.toUpperCase()) {
+                    return value as LogLv
+                }
+            }
+        }
+        return -1
+    }
+    /**
      * something to string
      * @param obj any
      */
-    protected async toStr(obj:any) {
-        if (obj instanceof Map) {
-            const out = {}
-            for (const [key, value] of obj.entries()) {
-                out[key] = value
+    protected toStr(obj:unknown, beauty = true):string {
+        const forceIndent = (str:string, indentInfo:string) => {
+            const blank = indentInfo.match(/^\s*/i)[0]
+            return str.split("\n").map((v, i) => i === 0 ? v : blank + v).join("\n")
+        }
+        const toJSONOpt = {
+            indent: "  ",
+            singleQuotes: false,
+            transform: (o:object,prop:string | number | symbol, value:string) => {
+                if (o[prop] instanceof Error) {
+                    return forceIndent(`"${this.errorToString(o[prop])}"`, value)
+                } else if (o[prop] instanceof Map) {
+                    const toObj = {}
+                    for (const [k, v] of o[prop].entries()) {
+                        toObj[k] = v
+                    }
+                    return forceIndent(stringify(toObj, toJSONOpt), value)
+                } else {
+                    return value
+                }
+            },
+        }
+        if (obj === null) {
+            if (beauty) {
+                return chalk.italic("null")
+            } else {
+                return "null"
             }
-            return this.beautyJSON(stringify(out, {
-                indent: "  ",
-                singleQuotes: false,
-            }))
+        }
+        if (obj === undefined) {
+            if (beauty) {
+                return chalk.italic("undefined")
+            } else {
+                return "undefined"
+            }
+        }
+        if (obj instanceof Map || typeof obj === "object") {
+            const out = {}
+            let entries:IterableIterator<[number | string, unknown]> | Array<[number | string, unknown]>
+            if (obj instanceof Map) {
+                entries = obj.entries()
+            } else {
+                entries = Object.entries(obj)
+            }
+            for (const [key, value] of entries) {
+                out[key] = this.toStr(value, false)
+            }
+            if (beauty) {
+                return this.beautyJSON(stringify(obj, toJSONOpt))
+            } else {
+                return stringify(obj, toJSONOpt)
+            }
         }
         if (obj instanceof Error) {
-            const rawStacks = this.filterStack(StackTrace.parse(obj))
-            const stackes:string[] = []
-            for (const stack of rawStacks) {
-                stackes.push(this.encodeCaller(await this.decodeStack(stack)))
-            }
-            return `${obj.name} : ${obj.message}\n${stackes.map((v) => `  at ${v}`).join("\n")}`
+            return this.errorToString(obj)
         }
         switch (typeof obj) {
             case "string":
@@ -392,7 +464,9 @@ export class ChocoLog {
             case "number":
             case "bigint":
             return obj.toString()
-            case "function":
+        }
+        /*
+                    case "function":
                 return `[Function ${obj.name}]`
             case "undefined":
                 return `[undefined]`
@@ -404,25 +478,48 @@ export class ChocoLog {
             }
             default:
                 return ""
+        */
+        if (typeof obj === "function") {
+            if (beauty) {
+                return this.beautyJSON(stringify(obj, toJSONOpt))
+            } else {
+                return stringify(obj, toJSONOpt)
+            }
         }
+        if (typeof obj === "undefined") {
+            return chalk.italic("undefined")
+        }
+        return ""
     }
-    protected async fallbackParam(title:_LikeString, desc:_LikeString) {
-        if (desc == null) {
-            desc = await this.toStr(title)
+    protected fallbackParam(title:unknown, desc:Array<unknown>) {
+        // tslint:disable-next-line
+        let descStr = ""
+        if (desc == null || desc.length <= 0) {
+            descStr = this.toStr(title)
             title = this.name.length < 1 ? ` ` : this.name
         } else {
-            title = await this.toStr(title)
-            desc = await this.toStr(desc)
+            title = this.toStr(title)
+            for (const str of desc) {
+                let _str = this.toStr(str)
+                if (_str.indexOf("\n") >= 0 && !_str.startsWith("\n")) {
+                    _str = "\n" + _str
+                }
+                descStr += _str
+            }
         }
-        if (!ansiRegex().test(desc)) {
-            desc = this.beautyJSON(desc)
+        if (!ansiRegex().test(descStr)) {
+            descStr = this.beautyJSON(descStr)
         }
-        return [title as string, desc as string]
+        let _title = title as string
+        if (_title.indexOf("\n") >= 0) {
+            _title = _title.replace(/\s*\n\s*/ig, "")
+        }
+        return [_title, descStr]
     }
     protected encodeCaller(called:Called) {
         return `${called.funcName} (${called.fileName}:${called.line}:${called.column})`
     }
-    protected async caller(deeper:number) {
+    protected caller(deeper:number) {
         const stackes = this.filterStack(StackTrace.get())
         if (deeper + 1 >= stackes.length) {
             return null
@@ -437,7 +534,7 @@ export class ChocoLog {
                 === pos
         })
     }
-    protected async decodeStack(query:StackTrace.StackFrame) {
+    protected decodeStack(query:StackTrace.StackFrame) {
         // const lastEl = <T>(arr:T[]) => arr[arr.length - 1]
         let sourcepath = query.getFileName()
         // const lastInfo = lastEl(sourcepath.split(/[\/\\]/ig))
@@ -449,8 +546,8 @@ export class ChocoLog {
         // sourcepath = sourcepath.substring(0, sourcepath.indexOf(":"))
         if (!this.sourceMap.has(sourcepath)) {
             const mapPath = `${sourcepath}.map`
-            if (await fs.pathExists(mapPath)) {
-                this.sourceMap.set(sourcepath, await TsMap.from(mapPath))
+            if (fs.pathExistsSync(mapPath)) {
+                this.sourceMap.set(sourcepath, TsMap.from(mapPath))
             } else {
                 this.sourceMap.set(sourcepath, null)
             }
@@ -533,7 +630,7 @@ export class ChocoLog {
             color2[1] = 1
         }
         return encodeColors(normal(
-            decodeColors(color1[0], color1[1]), decodeColors(color1[0], color2[1]),
+            decodeColors(color1[0], color1[1]), decodeColors(color2[0], color2[1]),
         ))
     }
     /**
@@ -544,34 +641,24 @@ export class ChocoLog {
      * @param content
      * @param options
      */
-    protected async printSimple(header:string, content:string, options:{
-        tagName:string, colorTheme:string, fontColor:string, backColor?:string}) {
+    protected printSimple(header:string, content:string, options:{
+        tagName:string, colorTheme:string, fontColor:string,
+        level:LogLv, backColor?:string}) {
+        // check log level
+        if (this.logLevel > options.level) {
+            return ""
+        }
         // define external properties
         let theme1 = this.defaultTheme.hex(options.fontColor)
-        let theme2 = this.sublineTheme.hex(options.fontColor)
+        let theme2 = chalk.bgHex(
+            this.mixColor([this.generalColors.back], ["#7f7f7f", 0.2]))
+            .hex(options.fontColor)
         if (options.backColor != null) {
             theme1 = theme1.bgHex(options.backColor)
-            const decodeColor = (str:string, start:number, ln:number) => {
-                return Number.parseInt(str.substr(start, ln), 16)
-            }
-            const decodeColors = (str:string,alpha = 1) => {
-                return {
-                    r: decodeColor(str, 1, 2),
-                    g: decodeColor(str, 3, 2),
-                    b: decodeColor(str, 5, 2),
-                    a: alpha,
-                }
-            }
-            const encodeColors = (rgba:{r:number, g:number, b:number, a:number}) => {
-                const encodeC = (n:number) => n.toString(16).padStart(2, "0")
-                const encodeCs = (...n:number[]) => n.map((v) => encodeC(v)).join("")
-                return `#${encodeCs(rgba.r, rgba.g, rgba.b)}`
-            }
-            theme2 = theme2.bgHex(encodeColors(normal(
-                decodeColors(options.backColor), decodeColors("#7f7f7f", 0.2))))
+            theme2 = theme2.bgHex(this.mixColor([options.backColor], ["#7f7f7f", 0.2]))
         }
         const theme = theme1.hex(options.colorTheme) /*.hex(options.fontColor) */
-        const callerFrom = await this.caller(2)
+        const callerFrom = this.caller(2)
         let caller = ""
         let encBottom = ""
         if (callerFrom != null && useOrigin()) {
@@ -684,8 +771,7 @@ export class ChocoLog {
             lastLine = lineNo
             out += thisLine
         }
-        out += "\n"
-        this.stack += 1
+        // out += "\n"
         return this.write(out.toString())
     }
     /**
@@ -709,10 +795,13 @@ export class ChocoLog {
     protected getFooter(encodedCaller:string) {
         return ` ${encodedCaller} `
     }
-    protected async write(str:string) {
+    protected write(str:string) {
+        console.log(str)
+        /*
         return new Promise<string>((res, rej) => {
             process.stdout.write(str, () => res(stripAnsi(str)))
         })
+        */
     }
 }
 interface Called {

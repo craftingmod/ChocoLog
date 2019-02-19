@@ -3,9 +3,9 @@ import path from "path"
 const vlq:{decode:(str:string) => number[], encode:(value:number | number[]) => string} = require("vlq")
 
 export default class TsMap {
-    public static async from(mapPath:string) {
+    public static from(mapPath:string) {
         mapPath = path.resolve(mapPath)
-        return new TsMap(mapPath, await fs.readJSON(mapPath))
+        return new TsMap(mapPath, fs.readJSONSync(mapPath))
     }
     protected jsPath:string
     protected tsPath:string
