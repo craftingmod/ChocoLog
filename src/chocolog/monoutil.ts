@@ -1,11 +1,14 @@
 import ansiParser from "ansi-parser"
 import ansiRegex from "ansi-regex"
+import emojiRegex from "emoji-regex"
 import stripAnsi from "strip-ansi"
 import wcwidth from "wcwidth"
 /**
  * Calculate for console print's length
  * @param text Text
  */
+const tabSize = 8
+const emojiWidth = (process.env.EMOJI_WIDTH !== undefined) ? Number.parseInt(process.env.EMOJI_WIDTH) : -1
 export function consoleLn(text:string) {
     if (text.indexOf("\n") >= 0) {
         throw new Error("Line seperator didn't allowed.")
@@ -14,12 +17,28 @@ export function consoleLn(text:string) {
     const arr = [...stripAnsi(text)]
     for (const char of arr) {
         if (char === "\t") {
-            ln = Math.ceil((ln + 1) / 4) * 4
+            ln = Math.ceil((ln + 1) / tabSize) * tabSize
             continue
+        }
+        if (emojiWidth >= 0) {
+            const emojiExec = emojiRegex().exec(char)
+            if (emojiExec != null) {
+                ln += [...emojiExec[0]].length * emojiWidth
+                // ln += wcwidth(char)
+                continue
+            }
         }
         ln += wcwidth(char)
     }
     return ln
+}
+export function makeBlank(length:number) {
+    // tslint:disable
+    let out = new String()
+    for (let i = 0; i < length; i += 1) {
+        out += " "
+    }
+    return out.toString()
 }
 /**
  * Monospace version of padStart
@@ -71,7 +90,7 @@ export function substrMono(text:string, start:number, length:number) {
     let untilLn = 0
     for (let i = 0; i < charsets.length; i += 1) {
         const char = charsets[i]
-        const ln = wcwidth(char)
+        const ln = consoleLn(char)
         if (char === tab) {
             totalLn = Math.ceil((totalLn + 1) / 4) * 4
         } else {

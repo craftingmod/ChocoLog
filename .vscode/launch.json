@@ -22,8 +22,9 @@
       "env": {
         "TYPESCRIPT_STARTER_REPO_URL": "${workspaceFolder}",
         "CLOG_ORIGIN": "true",
+        // "EMOJI_WIDTH": "1"
       },
-      "console": "integratedTerminal"
+      "console": "externalTerminal"
     },
     {
       "type": "node",

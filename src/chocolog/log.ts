@@ -16,7 +16,7 @@ import wcwidth from "wcwidth"
 import { asReadonly, DeepReadonly } from "../types/deepreadonly"
 import { Serializable, SerializableGeneric, Serializify } from "../types/serialize"
 import { LogLv, LogLvStatic } from "./loglv"
-import { consoleLn, padEndMono, substrMono } from "./monoutil"
+import { consoleLn, makeBlank, padEndMono, substrMono } from "./monoutil"
 import TsMap from "./tsmap"
 if (useOrigin()) {
     // module to extends stacktrace
@@ -26,11 +26,31 @@ if (useOrigin()) {
 }
 
 const defaultCodeCSS = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css"
-type _LikeString = Serializable | Map<string | number, Serializable> | Error
-type LikeString<S> = S extends _LikeString ? S : SerializableGeneric<S> | any
-type MapLikeString<S extends any[]> = {
-    [K in keyof S]: LikeString<S[K]>
+/*
+// Stringifyable (not indicate by interface, class, ...)
+type Stringifyable =
+        string | number | boolean | Error | Buffer
+type StringifyableR = Stringifyable | StringifyableMap | StringifyableObject | StringifyableArray
+interface StringifyableObject {
+    [x:string]: StringifyableR;
 }
+interface StringifyableMap extends Map<string | number, StringifyableR> {}
+interface StringifyableArray extends Array<StringifyableR> { }
+// generic of Stringifyable
+export type SableGeneric<T> =
+    T extends Stringifyable ? T :
+    T extends Function ? never :
+    T extends Array<infer R> ? SableArrGeneric<R> :
+    T extends object ? SableObjGeneric<T> :
+    never
+type SableObjGeneric<T> = {
+    [P in keyof T]: SableGeneric<T[P]>
+}
+interface SableArrGeneric<T> extends Array<SableGeneric<T>> { }
+type SableMapGeneric<S extends any[]> = {
+    [K in keyof S]: SableGeneric<S[K]>
+}
+*/
 
 export class ChocoLog {
     protected static defaultLevel = LogLv.ALL
@@ -115,22 +135,21 @@ export class ChocoLog {
    /**
     * Debug log
     */
-    public d<T, D extends any[]>(_title:LikeString<T>, ..._desc:MapLikeString<D>) {
-        const [title, desc] = this.fallbackParam(_title, _desc)
-        return this.printSimple(title, desc, {
+    public d(title:unknown, ...desc:Array<unknown>) {
+        const [strTitle, strDesc] = this.fallbackParam(title, desc)
+        return this.printSimple(strTitle, strDesc, {
             tagName: "D",
             colorTheme: this.typedColors.debug,
             fontColor: this.generalColors.text,
             level: this.levels.DEBUG,
         })
-        // "#a6db92"
     }
     /**
      * Verbose log
      */
-    public v<T, D extends any[]>(_title:LikeString<T>, ..._desc:MapLikeString<D>) {
-        const [title, desc] = this.fallbackParam(_title, _desc)
-        return this.printSimple(title, desc, {
+    public v(title:unknown, ...desc:Array<unknown>) {
+        const [strTitle, strDesc] = this.fallbackParam(title, desc)
+        return this.printSimple(strTitle, strDesc, {
             tagName: "V",
             colorTheme: this.typedColors.verbose,
             fontColor: this.generalColors.text,
@@ -140,9 +159,9 @@ export class ChocoLog {
     /**
      * Info log
      */
-    public i<T, D extends any[]>(_title:LikeString<T>, ..._desc:MapLikeString<D>) {
-        const [title, desc] = this.fallbackParam(_title, _desc)
-        return this.printSimple(title, desc, {
+    public i(title:unknown, ...desc:Array<unknown>) {
+        const [strTitle, strDesc] = this.fallbackParam(title, desc)
+        return this.printSimple(strTitle, strDesc, {
             tagName: "I",
             colorTheme: this.typedColors.info,
             fontColor: this.generalColors.text,
@@ -152,9 +171,9 @@ export class ChocoLog {
     /**
      * Warning log
      */
-    public w<T, D extends any[]>(_title:LikeString<T>, ..._desc:MapLikeString<D>) {
-        const [title, desc] = this.fallbackParam(_title, _desc)
-        return this.printSimple(title, desc, {
+    public w(title:unknown, ...desc:Array<unknown>) {
+        const [strTitle, strDesc] = this.fallbackParam(title, desc)
+        return this.printSimple(strTitle, strDesc, {
             tagName: "W",
             colorTheme: this.typedColors.warn,
             fontColor: this.generalColors.text,
@@ -164,9 +183,9 @@ export class ChocoLog {
     /**
      * Error log
      */
-    public e<T, D extends any[]>(_title:LikeString<T>, ..._desc:MapLikeString<D>):Promise<null> {
-        const [title, desc] = this.fallbackParam(_title, _desc)
-        this.printSimple(title, desc, {
+    public e(title:unknown, ...desc:Array<unknown>):null {
+        const [strTitle, strDesc] = this.fallbackParam(title, desc)
+        this.printSimple(strTitle, strDesc, {
             tagName: "E",
             colorTheme: this.typedColors.error,
             fontColor: this.typedColors.error,
@@ -177,10 +196,10 @@ export class ChocoLog {
     /**
      * OMG
      */
-    public wtf<T, D extends any[]>(_title:LikeString<T>, ..._desc:MapLikeString<D>) {
-        let [title, desc] = this.fallbackParam(_title, _desc)
-        desc = chalk.hex("#ffcbc6")(desc)
-        return this.printSimple(title, desc, {
+    public wtf(title:unknown, ...desc:Array<unknown>) {
+        const params = this.fallbackParam(title, desc)
+        params[1] = chalk.hex("#ffcbc6")(params[1])
+        return this.printSimple(params[0], params[1], {
             tagName: "F",
             colorTheme: this.typedColors.assert,
             fontColor: this.typedColors.assert,
@@ -194,7 +213,7 @@ export class ChocoLog {
      * @param _code Code string to print (css, js, etc...)
      * @param _title Title of log, not need at normal.
      */
-    public code<T>(_code:string, _title?:LikeString<T>) {
+    public code(_code:string, _title?:string | number | boolean) {
         let title:string
         if (_title == null) {
             title = "Code"
@@ -385,7 +404,7 @@ export class ChocoLog {
         for (const stack of rawStacks) {
             stackes.push(this.encodeCaller(this.decodeStack(stack)))
         }
-        return `${err.name} : ${err.message}\n${stackes.map((v) => `  at ${v}`).join("\n")}`
+        return `[${err.name}] ${err.message}\n${stackes.map((v) => `  at ${v}`).join("\n")}`
     }
     protected decodeLogLevel(level:LogLv | keyof typeof LogLvStatic) {
         if (typeof level === "string") {
@@ -398,26 +417,39 @@ export class ChocoLog {
         return -1
     }
     /**
-     * something to string
-     * @param obj any
+     * Something type to string (Maybe recursive)
+     * @param obj any object or number or etc..
      */
     protected toStr(obj:unknown, beauty = true):string {
-        const forceIndent = (str:string, indentInfo:string) => {
-            const blank = indentInfo.match(/^\s*/i)[0]
-            return str.split("\n").map((v, i) => i === 0 ? v : blank + v).join("\n")
+        const forceIndenter = `\u{FFF5}_#>`
+        const valNameIndenter = `\u{FFF5}_N>`
+        const indenter = "  "
+        const forceIndent = (str:string) => {
+            const splited = str.split("\n")
+            return splited.map((v, i) => {
+                if (i === 0) {
+                    return v
+                } else if (i === splited.length - 1 && v.trim() === "}") {
+                    return forceIndenter + v
+                } else {
+                    return forceIndenter + v
+                }
+            }).join("\n")
         }
         const toJSONOpt = {
-            indent: "  ",
+            indent: indenter,
             singleQuotes: false,
+            inlineCharacterLimit: 30,
             transform: (o:object,prop:string | number | symbol, value:string) => {
                 if (o[prop] instanceof Error) {
-                    return forceIndent(`"${this.errorToString(o[prop])}"`, value)
+                    const str = `\u{1F4A5} ${this.errorToString(o[prop])}`
+                    return forceIndent(str)
                 } else if (o[prop] instanceof Map) {
                     const toObj = {}
                     for (const [k, v] of o[prop].entries()) {
                         toObj[k] = v
                     }
-                    return forceIndent(stringify(toObj, toJSONOpt), value)
+                    return forceIndent(stringify(toObj, toJSONOpt))
                 } else {
                     return value
                 }
@@ -437,57 +469,66 @@ export class ChocoLog {
                 return "undefined"
             }
         }
-        if (obj instanceof Map || typeof obj === "object") {
-            const out = {}
-            let entries:IterableIterator<[number | string, unknown]> | Array<[number | string, unknown]>
-            if (obj instanceof Map) {
-                entries = obj.entries()
-            } else {
-                entries = Object.entries(obj)
-            }
-            for (const [key, value] of entries) {
-                out[key] = this.toStr(value, false)
-            }
-            if (beauty) {
-                return this.beautyJSON(stringify(obj, toJSONOpt))
-            } else {
-                return stringify(obj, toJSONOpt)
-            }
-        }
-        if (obj instanceof Error) {
-            return this.errorToString(obj)
-        }
         switch (typeof obj) {
             case "string":
                 return obj
             case "boolean":
             case "number":
+            case "symbol":
             case "bigint":
+                return obj.toString()
+        }
+        if (obj instanceof Buffer) {
             return obj.toString()
         }
-        /*
-                    case "function":
-                return `[Function ${obj.name}]`
-            case "undefined":
-                return `[undefined]`
-            case "object": {
-                return stringify(obj, {
-                    indent: "  ",
-                    singleQuotes: false,
-                })
-            }
-            default:
-                return ""
-        */
-        if (typeof obj === "function") {
-            if (beauty) {
-                return this.beautyJSON(stringify(obj, toJSONOpt))
-            } else {
-                return stringify(obj, toJSONOpt)
-            }
+        if (obj instanceof Error) {
+            return this.errorToString(obj)
         }
-        if (typeof obj === "undefined") {
-            return chalk.italic("undefined")
+        if (obj instanceof Map || typeof obj === "object" || typeof obj === "function") {
+            let json = stringify(obj, toJSONOpt)
+            let lastIntentNum = 0
+            let lastValNameNum = 0
+            if (json.indexOf(forceIndenter) >= 0) {
+                const lines = json.split("\n")
+                for (let i = 0; i < lines.length; i += 1) {
+                    let line = lines[i]
+                    let intentNum = 0
+                    if (!line.startsWith(indenter) && !line.startsWith(forceIndenter)) {
+                        continue
+                    }
+                    while (line.startsWith(indenter)) {
+                        line = line.replace(indenter, "")
+                        intentNum += 1
+                    }
+                    const valName = line.match(/^.*?:\s*/i)
+                    let valNameLn = -1
+                    if (valName != null) {
+                        valNameLn = consoleLn(valName[0])
+                    }
+                    const isForcedIntenter = line.startsWith(forceIndenter)
+                    if (isForcedIntenter) {
+                        let madeIntent = ""
+                        for (let k = 0; k < lastIntentNum; k += 1) {
+                            madeIntent += indenter
+                        }
+                        lines[i] = line
+                            .replace(forceIndenter, madeIntent)
+                            .replace(valNameIndenter, makeBlank(lastValNameNum))
+                    }
+                    if (valNameLn >= 0 && !isForcedIntenter) {
+                        lastValNameNum = valNameLn
+                    }
+                    if (intentNum > 0 && !isForcedIntenter) {
+                        lastIntentNum = intentNum
+                    }
+                }
+                json = lines.join("\n")
+            }
+            if (beauty) {
+                return this.beautyJSON(json)
+            } else {
+                return json
+            }
         }
         return ""
     }
@@ -514,7 +555,7 @@ export class ChocoLog {
         if (_title.indexOf("\n") >= 0) {
             _title = _title.replace(/\s*\n\s*/ig, "")
         }
-        return [_title, descStr]
+        return [_title, descStr] as [string, string]
     }
     protected encodeCaller(called:Called) {
         return `${called.funcName} (${called.fileName}:${called.line}:${called.column})`
@@ -731,6 +772,9 @@ export class ChocoLog {
         // tslint:disable-next-line
         let out = new String()
         let lastLine = -1
+        const calcLnWithTab = (str:string, prefix:string) => {
+            return consoleLn(prefix + str) - consoleLn(prefix)
+        }
         for (let i = 0; i < lines.length; i += 1) {
             const line = lines[i].content
             const lineNo = lines[i].lineNo + (largeDesign ? -1 : 0)
@@ -740,15 +784,20 @@ export class ChocoLog {
                 thisLine += encHeader
                 thisLine += lineTheme(line)
                 if (i < lines.length - 1) {
-                    thisLine += lineTheme("".padEnd(maxLn0 - consoleLn(line)))
+                    thisLine += lineTheme(makeBlank(maxLn0 - calcLnWithTab(line, encHeader)))
                 }
             } else {
+                let indexVo = ""
+                if (lastLine !== lineNo) {
+                    indexVo = lineNo.toString()
+                }
                 thisLine += `${this.getMiddle(middleStyle,
-                    (lastLine !== lineNo ? lineNo.toString() : "").padStart(this.middleSize))
+                    makeBlank(this.middleSize - consoleLn(indexVo)) + indexVo)
                     }${lineTheme(" ")}`
                 if (i < lines.length - 1) {
+                    const test = consoleLn(line)
                     thisLine += lineTheme(line) +
-                        lineTheme("".padEnd(maxLnA - consoleLn(line)))
+                        lineTheme(makeBlank(maxLnA - calcLnWithTab(line, thisLine)))
                 } else {
                     thisLine += lineTheme(line)
                 }
@@ -756,14 +805,14 @@ export class ChocoLog {
             if (i === lines.length - 1) {
                 const left = this.width - consoleLn(stripAnsi(thisLine))
                 if (largeDesign) {
-                    thisLine += lineTheme("".padStart(this.width - consoleLn(thisLine)))
+                    thisLine += lineTheme(makeBlank(this.width - consoleLn(thisLine)))
                 } else if (left >= consoleLn(encBottom)) {
-                    thisLine += lineTheme("".padStart(left - consoleLn(encBottom)))
+                    thisLine += lineTheme(makeBlank(left - consoleLn(encBottom)))
                     thisLine += encBottom
                 } else {
-                    thisLine += lineTheme("".padStart(this.width - consoleLn(thisLine)))
+                    thisLine += lineTheme(makeBlank(this.width - consoleLn(thisLine)))
                     thisLine += "\n"
-                    thisLine += lineTheme("".padStart(this.width - consoleLn(encBottom))) + encBottom
+                    thisLine += lineTheme(makeBlank(this.width - consoleLn(encBottom))) + encBottom
                 }
             } else {
                 thisLine += "\n"
@@ -797,6 +846,7 @@ export class ChocoLog {
     }
     protected write(str:string) {
         console.log(str)
+        return str
         /*
         return new Promise<string>((res, rej) => {
             process.stdout.write(str, () => res(stripAnsi(str)))

@@ -1,6 +1,6 @@
 {
   "name": "chocolog",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "A simple colorful logcat",
   "main": "dist/index.js",
   "types": "./dist/index.d.ts",
@@ -34,6 +34,7 @@
     "clarify": "^2.1.0",
     "color": "^3.1.0",
     "color-blend": "^2.0.3",
+    "emoji-regex": "^7.0.3",
     "emphasize": "^2.0.0",
     "fs-extra": "^7.0.1",
     "highlight.js": "^9.14.2",

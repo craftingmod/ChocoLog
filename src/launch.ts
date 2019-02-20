@@ -1,41 +1,60 @@
+import chalk from "chalk"
 import fs from "fs"
+import fetch from "node-fetch"
+import { consoleLn } from "./chocolog/monoutil"
 import { dongbak } from "./dongbak"
 import { ChocoLog, cLog } from "./index"
 
-console.log("Hello World")
-
-// tslint:disable-next-line
-const Log = cLog.getLogger("tester")
 // https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css
-async function run() {
-    // tslint:disable-next-line
-    const cssurl = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css"
-    // const log = new ChocoLog()
-    await Log.setDefaultTheme()
-    Log.enableAll()
-    Log.use12Hour = true
+async function sample() {
+    const log = cLog.getLogger("Sample")
+    await log.setDefaultTheme()
+    log.enableAll()
+    log.use12Hour = true
+    // 1. string
+    log.d("Hello, World")
+    // 2. string with header & content
+    log.d("Header", "Content", " is", " awesome!")
+    // 3. 5 types of logs
+    log.i("Info")
+    log.w("Warn")
+    log.e("Error")
+    log.v("Verbose")
+    log.wtf("RIP")
+    // 4. paramater as integer or boolean
+    log.d("Integer", 1004, true)
+    // 5. parameter as Map
     const testMap = new Map<string, string>()
     testMap.set("5353", "Test")
-    await Log.v("Object Test", {
-        a: 53,
-        b: "Hello",
-        c: {
-            d: "5353",
-            e: new Error("Test"),
-            f: {
-                g: "Recursive",
-                h: true,
-                i: [53, 77],
-            },
-            k: testMap,
-            i: () => "test",
+    testMap.set("7777", "afafa")
+    testMap.set("578888", "Ahahaha")
+    log.d("Map", testMap)
+    // 6. parameter as Error
+    log.d("Oops", new Error("Hello Error~"))
+    // 7. parameter as object
+    log.d("Object", {
+        first: "1",
+        second: 2,
+        third: true,
+        fourth: () => "hello",
+        fifth: {
+            recursive: true,
+            thinking: "🤔",
         },
     })
-    for (let i = 0; i < 100; i += 1) {
-        await Log.d("Loop " + i)
-    }
+    // 8. code
+    const css = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css"
+    log.code(await fetch(css).then((v) => v.text()))
+    // 9. set log level
+    log.setLevel("WARN")
+    log.d("I'm not showing!")
+    log.w("I'm showing!")
+    log.e("Me too o/")
+    log.enableAll()
+    // end
+    log.i("Finish~")
 }
-run()
+sample()
 // logUnicode()
 async function test() {
     const log = new ChocoLog("Test")
@@ -70,6 +89,12 @@ for (let i = 0; i < dongbaks.length; i += 1) {
 interface InterF {
     tesT:number,
 }
+class Claz {
+    public test = 53
+    public hello() {
+        // dummy
+    }
+}
 
 function logUnicode() {
     for (let i = 0; i <= 255; i += 1) {
@@ -89,6 +114,6 @@ function logUnicode() {
             }
             block += "\n"
         }
-        Log.i("Unicode", block)
+        cLog.i("Unicode", block)
     }
 }
