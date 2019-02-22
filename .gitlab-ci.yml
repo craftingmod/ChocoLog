@@ -1,0 +1,23 @@
+image: node:10.15.1
+cache:
+  paths:
+    - node_modules/
+    - .yarn
+before_script:
+   - apt-get update -qq && apt-get install
+stages:
+  - build
+Build Library:
+  stage: build
+  tags:
+   #- you_would_put_your_tag_in_here
+   #- node
+  before_script:
+   - yarn config set cache-folder .yarn
+   - yarn install
+  script:
+    - npm run build
+  artifacts:
+    paths:
+    - build
+    expire_in: 1 week

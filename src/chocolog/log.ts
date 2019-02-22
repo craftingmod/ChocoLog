@@ -18,6 +18,7 @@ import { Serializable, SerializableGeneric, Serializify } from "../types/seriali
 import { LogLv, LogLvStatic } from "./loglv"
 import { consoleLn, makeBlank, padEndMono, substrMono } from "./monoutil"
 import TsMap from "./tsmap"
+import { vs2015CSS } from "./vs2015css"
 if (useOrigin()) {
     // module to extends stacktrace
     // this is MUST require for duplicate stacktrace tracking
@@ -125,6 +126,7 @@ export class ChocoLog {
     public constructor(name:string) {
         this.name = name
         this.logLevel = ChocoLog.defaultLevel
+        this.setCodeTheme(vs2015CSS)
     }
     /*
     =====================================================
@@ -234,10 +236,6 @@ export class ChocoLog {
     = Theme Part
     =====================================================
     */
-    public async setDefaultTheme() {
-        await this.setCodeTheme(defaultCodeCSS)
-        return this.setCodeTheme(defaultCodeCSS)
-    }
     public setGeneralColor(general:Partial<{
         background:string,
         background2:string,
@@ -436,6 +434,23 @@ export class ChocoLog {
                 }
             }).join("\n")
         }
+        const cubeCache:string[] = []
+        const encodeNo = (num:number) => {
+            const str = [...num.toString(10)]
+            const out = []
+            for (const chNum of str) {
+                out.push((Number.parseInt(chNum) + 10).toString(36))
+            }
+            return out.join("")
+        }
+        const decodeNo = (num:string) => {
+            const str = [...num]
+            const out = []
+            for (const chNum of str) {
+                out.push((Number.parseInt(chNum, 36) - 10).toString(10))
+            }
+            return Number.parseInt(out.join(""))
+        }
         const toJSONOpt = {
             indent: indenter,
             singleQuotes: false,
@@ -443,16 +458,26 @@ export class ChocoLog {
             transform: (o:object,prop:string | number | symbol, value:string) => {
                 if (o[prop] instanceof Error) {
                     const str = `\u{1F4A5} ${this.errorToString(o[prop])}`
-                    return forceIndent(str)
+                    value = forceIndent(str)
+                    value = chalk.hex(this.typedColors.error)(value)
                 } else if (o[prop] instanceof Map) {
                     const toObj = {}
                     for (const [k, v] of o[prop].entries()) {
                         toObj[k] = v
                     }
-                    return forceIndent(stringify(toObj, toJSONOpt))
+                    value = forceIndent(stringify(toObj, toJSONOpt))
+                } else if (typeof o[prop] === "function") {
+                    // return value
+                    value = this.beautyCode(value)
                 } else {
-                    return value
+                    // return value
                 }
+                const ansies = value.match(ansiRegex())
+                if (ansies != null) {
+                    cubeCache.push(value)
+                    value = `\u{FFF5}_A${encodeNo(cubeCache.length - 1)}_`
+                }
+                return value // .replace(new RegExp("\x1B\\[", "ig"), "\u{FFF5}_C>")
             },
         }
         if (obj === null) {
@@ -525,10 +550,17 @@ export class ChocoLog {
                 json = lines.join("\n")
             }
             if (beauty) {
-                return this.beautyJSON(json)
-            } else {
-                return json
+                json = this.beautyJSON(json)
             }
+            const ansiRep = json.match(new RegExp(`\u{FFF5}_A.+?_`, "g"))
+            if (ansiRep != null) {
+                for (const ansiR of ansiRep) {
+                    const str = ansiR.match(/_A.+?_/i)[0]
+                    const index = decodeNo(str.substring(2, str.length - 1))
+                    json = json.replace(ansiR, cubeCache[index])
+                }
+            }
+            return json
         }
         return ""
     }

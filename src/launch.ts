@@ -8,7 +8,7 @@ import { ChocoLog, cLog } from "./index"
 // https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css
 async function sample() {
     const log = cLog.getLogger("Sample")
-    await log.setDefaultTheme()
+    // await log.setDefaultTheme()
     log.enableAll()
     log.use12Hour = true
     // 1. string
@@ -36,11 +36,12 @@ async function sample() {
         first: "1",
         second: 2,
         third: true,
-        fourth: () => "hello",
+        fourth: testMap.keys,
         fifth: {
             recursive: true,
             thinking: "🤔",
         },
+        error: new Error("Hello"),
     })
     // 8. code
     const css = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css"
@@ -58,7 +59,6 @@ sample()
 // logUnicode()
 async function test() {
     const log = new ChocoLog("Test")
-    await log.setDefaultTheme()
     log.d(5353)
     log.d(true)
     log.d({

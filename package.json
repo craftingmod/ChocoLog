@@ -2,8 +2,8 @@
   "name": "chocolog",
   "version": "1.1.0",
   "description": "A simple colorful logcat",
-  "main": "dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
   "repository": "https://gitlab.com/craftingmod/chocolog",
   "license": "MIT",
   "keywords": [],
@@ -12,7 +12,9 @@
     "build:main": "tsc -p tsconfig.json",
     "version": "standard-version",
     "reset": "git clean -dfx && git reset --hard && npm i",
-    "clean": "trash build test"
+    "clean": "trash build test",
+    "start": "node build/launch.js",
+    "prepare": "npm run build"
   },
   "scripts-info": {},
   "engines": {
