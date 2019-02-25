@@ -1,12 +1,12 @@
 import ansiParser from "ansi-parser"
 import ansiRegex from "ansi-regex"
 import emojiRegex from "emoji-regex"
-import stripAnsi from "strip-ansi"
 import wcwidth from "wcwidth"
 /**
  * Calculate for console print's length
  * @param text Text
  */
+export const ansiExp = ansiRegex()
 const tabSize = 8
 const emojiWidth = (process.env.EMOJI_WIDTH !== undefined) ? Number.parseInt(process.env.EMOJI_WIDTH) : -1
 export function consoleLn(text:string) {
@@ -14,7 +14,7 @@ export function consoleLn(text:string) {
         throw new Error("Line seperator didn't allowed.")
     }
     let ln = 0
-    const arr = [...stripAnsi(text)]
+    const arr = [...text.replace(ansiExp, "")]
     for (const char of arr) {
         if (char === "\t") {
             ln = Math.ceil((ln + 1) / tabSize) * tabSize
@@ -31,6 +31,9 @@ export function consoleLn(text:string) {
         ln += wcwidth(char)
     }
     return ln
+}
+export function stripAnsi(text:string) {
+    return text.replace(ansiExp, "")
 }
 export function makeBlank(length:number) {
     // tslint:disable
@@ -76,8 +79,8 @@ export function substrMono(text:string, start:number, length:number) {
     // tslint:disable-next-line
     let out:string[] = []
     // ansi escape positions
-    const ansiCodes:string[] = ansiRegex().test(text) ? text.match(ansiRegex()) : []
-    const ansiPosInfo = text.split(ansiRegex()).map((v) => v.length)
+    const ansiCodes:string[] = ansiExp.test(text) ? text.match(ansiExp) : []
+    const ansiPosInfo = text.split(ansiExp).map((v) => v.length)
     for (let i = 0; i < ansiPosInfo.length; i += 1) {
         if (i >= 1) {
             ansiPosInfo[i] += ansiPosInfo[i - 1]
