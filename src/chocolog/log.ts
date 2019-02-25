@@ -247,7 +247,7 @@ export class ChocoLog {
         } else {
             title = this.toStr(_title)
         }
-        const desc = emphasize.highlightAuto(_code, this.codeStyle).value
+        const desc = this.beautyCode(_code)
         return this.printSimple(title, desc, {
             tagName: "C",
             colorTheme: this.codeTextColor,
@@ -272,7 +272,7 @@ export class ChocoLog {
             try {
                 this.codeBackground = cssToColor(queryBack.trim())
             } catch (err) {
-                this.e("setCodeTheme", "Color_bg parse Failed\n", err)
+                this.w("setCodeTheme", "Color_bg parse Failed\n", err)
             }
         }
         // foreground color search
@@ -281,7 +281,7 @@ export class ChocoLog {
             try {
                 this.codeTextColor = cssToColor(queryFore.trim())
             } catch (err) {
-                this.e("setCodeTheme", "Color_text parse Failed.\n", err)
+                this.w("setCodeTheme", "Color_text parse Failed.\n", err)
             }
         }
         // child style search
@@ -293,13 +293,13 @@ export class ChocoLog {
             try {
                 color = cssToColor(getFirst(query.match(/color:.+;/)))
             } catch (err) {
-                this.e("setCodeTheme", "ColorText parse failed.\n", err)
+                this.w("setCodeTheme", "ColorText parse failed.\n", err)
             }
             let colorBack:string
             try {
                 colorBack = cssToColor(getFirst(query.match(/background-color:.+;/)))
             } catch (err) {
-                this.e("setCodeTheme", "ColorBack parse failed.\n", err)
+                this.w("setCodeTheme", "ColorBack parse failed.\n", err)
             }
             const bold = query.match(/font-weight:\s*bold;/) != null
             const italic = query.match(/font-style:\s*italic;/) != null
@@ -308,24 +308,28 @@ export class ChocoLog {
             if (headers == null) {
                 continue
             }
-            let style:Chalk = chalk
-            if (color != null) {
-                style = style.hex(color)
-            }
-            if (colorBack != null) {
-                style = style.bgHex(colorBack)
-            }
-            if (bold) {
-                style = style.bold
-            }
-            if (italic) {
-                style = style.italic
-            }
-            if (underline) {
-                style = style.underline
-            }
             for (const header of headers) {
-                styles[header.replace(".hljs-", "").replace(",", "")] = style
+                const head = header.replace(/^\.hljs-/i, "").replace(/,\s*/i, "").replace("{", "").trim()
+                let style:Chalk = styles[head]
+                if (styles[head] === undefined) {
+                    style = chalk
+                }
+                if (color != null) {
+                    style = style.hex(color)
+                }
+                if (colorBack != null) {
+                    style = style.bgHex(colorBack)
+                }
+                if (bold) {
+                    style = style.bold
+                }
+                if (italic) {
+                    style = style.italic
+                }
+                if (underline) {
+                    style = style.underline
+                }
+                styles[head] = style
             }
         }
         this.codeStyle = styles
@@ -642,7 +646,7 @@ export class ChocoLog {
                 sourceLine = info.tsRow
                 sourceColumn = info.tsColumn
             } else {
-                console.error(new Error("Info is null!"))
+                sourcepath = path.relative(this.cwd, sourcepath)
             }
         } else {
             sourcepath = path.relative(this.cwd, sourcepath)

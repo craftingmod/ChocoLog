@@ -15,7 +15,7 @@ async function sample() {
     log.enableAll()
     log.use12Hour = true
     const css = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/a11y-light.css"
-    // await cLog.setCodeTheme(await fetch(css).then((v) => v.text()))
+    cLog.setCodeTheme(await fetch(css).then((v) => v.text()))
     // 1
     cLog.d("🤔")
     cLog.d("thinking face", "🤔")

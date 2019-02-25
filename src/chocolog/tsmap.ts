@@ -120,6 +120,9 @@ export default class TsMap {
         line -= 1
         column -= 1
         const mp = this.getMapping(line, column)
+        if (mp == null) {
+            return null
+        }
         mp.jsColumn += 1
         mp.tsColumn += 1
         mp.tsRow += 1
