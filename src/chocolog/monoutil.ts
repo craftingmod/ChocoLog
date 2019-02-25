@@ -13,8 +13,11 @@ export function consoleLn(text:string) {
     if (text.indexOf("\n") >= 0) {
         throw new Error("Line seperator didn't allowed.")
     }
+    if (text.length === 1) {
+        return wcwidth(text)
+    }
     let ln = 0
-    const arr = [...text.replace(ansiExp, "")]
+    const arr = [...stripAnsi(text)]
     for (const char of arr) {
         if (char === "\t") {
             ln = Math.ceil((ln + 1) / tabSize) * tabSize
@@ -93,7 +96,7 @@ export function substrMono(text:string, start:number, length:number) {
     let untilLn = 0
     for (let i = 0; i < charsets.length; i += 1) {
         const char = charsets[i]
-        const ln = consoleLn(char)
+        const ln = wcwidth(char)
         if (char === tab) {
             totalLn = Math.ceil((totalLn + 1) / 4) * 4
         } else {

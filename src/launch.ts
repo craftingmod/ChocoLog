@@ -1,7 +1,9 @@
+import ansiRegex from "ansi-regex"
 import chalk from "chalk"
 import fs from "fs"
 import fetch from "node-fetch"
-import { consoleLn } from "./chocolog/monoutil"
+import wcwidth from "wcwidth"
+import { consoleLn, stripAnsi, substrMono } from "./chocolog/monoutil"
 import { dongbak } from "./dongbak"
 import { ChocoLog, cLog } from "./index"
 
@@ -9,43 +11,34 @@ import { ChocoLog, cLog } from "./index"
 async function sample() {
     const log = cLog.getLogger("Sample")
     // await log.setDefaultTheme()
+    cLog.use12Hour = true
     log.enableAll()
     log.use12Hour = true
-    // 1. string
-    log.d("Hello, World")
-    // 2. string with header & content
-    log.d("Header", "Content", " is", " awesome!")
-    // 3. 5 types of logs
-    log.i("Info")
-    log.w("Warn")
-    log.e("Error")
-    log.v("Verbose")
-    log.wtf("RIP")
-    // 4. paramater as integer or boolean
-    log.d("Integer", 1004, true)
-    // 5. parameter as Map
-    const testMap = new Map<string, string>()
-    testMap.set("5353", "Test")
-    testMap.set("7777", "afafa")
-    testMap.set("578888", "Ahahaha")
-    log.d("Map", testMap)
-    // 6. parameter as Error
-    log.d("Oops", new Error("Hello Error~"))
-    // 7. parameter as object
-    log.d("Object", {
-        first: "1",
-        second: 2,
-        third: true,
-        fourth: testMap.keys,
-        fifth: {
-            recursive: true,
-            thinking: "🤔",
-        },
-        error: new Error("Hello"),
+    const css = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/a11y-light.css"
+    // await cLog.setCodeTheme(await fetch(css).then((v) => v.text()))
+    // 1
+    cLog.d("🤔")
+    cLog.d("thinking face", "🤔")
+    cLog.d("faces", "🤔", "🙃", "😗")
+    // 2
+    cLog.i("Primitives", 37, " ", true, " ", null)
+    cLog.i("Object", {
+        thinking: "🤔",
+        upsideDown: "🙃",
     })
-    // 8. code
-    const css = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css"
-    log.code(await fetch(css).then((v) => v.text()))
+    cLog.i(["LoLInsect", "Detected"])
+    const mp = new Map<string, string>()
+    mp.set("Top", "Teemo")
+    mp.set("Mid", "Riven")
+    mp.set("ADCarry", "Ezreal")
+    cLog.i("Loading", mp)
+    cLog.i("Oops", new Error("Trolling"))
+    cLog.i("Fn", (str:string) => `Hello, ${str}!`)
+    const cd = fs.readFileSync(process.cwd() + "/example.js", { encoding: "utf8" })
+    cLog.d(new Date(Date.now()))
+    const code = cLog.code(cd)
+    cLog.d("Length", code.length)
+
     // 9. set log level
     log.setLevel("WARN")
     log.d("I'm not showing!")
@@ -55,6 +48,14 @@ async function sample() {
     // end
     log.i("Finish~")
 }
+function perform() {
+    const start = Date.now()
+    for (let i = 0; i < 100000; i += 1) {
+        substrMono("ABCDEFGHJIJIJIJIJIJIJIJIJIJIJJIIJIJIJIJI", 15, 4)
+    }
+    console.log(Date.now() - start)
+}
+// perform()
 sample()
 // logUnicode()
 async function test() {
@@ -65,10 +66,15 @@ async function test() {
         aa: "Kkirodeasu",
         cd: "Holla!",
     })
-    log.d(["Hello", "World"])
-    const mapTest = new Map<string, number>()
-    mapTest.set("Test", 1123)
-    log.d(mapTest)
+    const mp = new Map<string, string>()
+    mp.set("Top", "Teemo")
+    mp.set("Mid", "Riven")
+    mp.set("ADCarry", "Ezreal")
+    cLog.i("Loading", mp)
+    // Error
+    cLog.i("Oops", new Error("Trolling"))
+    // Function.. (not correctly)
+    cLog.i("Fn", (str:string) => `Hello, ${str}!`)
 }
 /*
 for (let i = 0; i < dongbaks.length; i += 1) {

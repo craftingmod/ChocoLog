@@ -1,5 +1,4 @@
 import ansiParser, { removeAnsi } from "ansi-parser"
-import ansiRegex from "ansi-regex"
 import chalk, { Chalk } from "chalk"
 import Color from "color"
 import { normal } from "color-blend"
@@ -10,13 +9,13 @@ import fetch from "node-fetch"
 import path from "path"
 import StackTrace from "stack-trace"
 import stringify from "stringify-object"
-import stripAnsi from "strip-ansi"
 import uuidRand from "uuid/v4"
 import wcwidth from "wcwidth"
 import { asReadonly, DeepReadonly } from "../types/deepreadonly"
 import { Serializable, SerializableGeneric, Serializify } from "../types/serialize"
 import { LogLv, LogLvStatic } from "./loglv"
-import { consoleLn, makeBlank, padEndMono, substrMono } from "./monoutil"
+import { ansiExp, consoleLn, makeBlank, padEndMono, stripAnsi, substrMono } from "./monoutil"
+import { decodeNo, encodeNo, forceIndent, forceIndenter, indenter, valNameIndenter } from "./tostr"
 import TsMap from "./tsmap"
 import { vs2015CSS } from "./vs2015css"
 if (useOrigin()) {
@@ -26,6 +25,7 @@ if (useOrigin()) {
     require("clarify")
 }
 
+const jsPath = __filename
 const defaultCodeCSS = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css"
 /*
 // Stringifyable (not indicate by interface, class, ...)
@@ -54,6 +54,41 @@ type SableMapGeneric<S extends any[]> = {
 */
 
 export class ChocoLog {
+    /**
+     * Default theme
+     *
+     * Used in text content
+     */
+    protected get defaultTheme() {
+        return chalk.bgHex(this.generalColors.back).hex(this.generalColors.text)
+    }
+
+    protected get width() {
+        return process.stdout.columns
+    }
+    protected get headerSize() {
+        return Math.min(this.minHeaderSize, Math.floor(this.width / 4))
+    }
+    protected get timestamp() {
+        const time = new Date(Date.now())
+        let h = time.getHours()
+        const isPM = h >= 12
+        if (this.use12Hour) {
+            if (isPM) {
+                h -= 12
+            }
+            if (h === 0) {
+                h = 12
+            }
+        }
+        const pad = (n:number) => n.toString(10).padStart(2, "0")
+        const month = pad(time.getMonth() + 1)
+        const day = pad(time.getDate())
+        const m = pad(time.getMinutes())
+        const s = pad(time.getSeconds())
+        const ms = time.getMilliseconds().toString(10).padStart(3, "0")
+        return `${this.use12Hour ? (isPM ? "P" : "A") : ""}${pad(h)}:${m}:${s}.${ms}`
+    }
     protected static defaultLevel = LogLv.ALL
     /**
      * Default name of header
@@ -72,6 +107,12 @@ export class ChocoLog {
      * Log Levels defines
      */
     public readonly levels = asReadonly({...LogLvStatic})
+    /*
+    =====================================================
+    = Theme Part
+    =====================================================
+    */
+    public public
     /**
      * Current log level
      */
@@ -97,30 +138,14 @@ export class ChocoLog {
         error: "#f9756b",
         assert: "#f1a5ff",
     }
-    /**
-     * Default theme
-     *
-     * Used in text content
-     */
-    protected get defaultTheme() {
-        return chalk.bgHex(this.generalColors.back).hex(this.generalColors.text)
-    }
 
-    protected brightDark = "#333333"
-    protected infoTheme = chalk.bgHex("#fce5e5").hex(this.brightDark)
+    protected infoTheme = chalk.bgHex("#564e4e").hex(this.generalColors.text).italic
     protected lineTheme = chalk.bgHex("#e2e2e2").hex("#111111")
 
     protected middleSize = 3
     protected subpadSize = 1
 
     protected cwd = process.cwd()
-
-    protected get width() {
-        return process.stdout.columns
-    }
-    protected get headerSize() {
-        return Math.min(this.minHeaderSize, Math.floor(this.width / 4))
-    }
     protected sourceMap:Map<string, TsMap> = new Map()
     // protected headerChalk = chalk.
     public constructor(name:string) {
@@ -231,59 +256,51 @@ export class ChocoLog {
             level: this.levels.VERBOSE,
         })
     }
-    /*
-    =====================================================
-    = Theme Part
-    =====================================================
-    */
-    public setGeneralColor(general:Partial<{
-        background:string,
-        background2:string,
-        textColor:string,
-    }>) {
-
-    }
-    public setTypeColor(typed:Partial<{
-        verbose:string,
-        debug:string,
-        info:string,
-        warn:string,
-        error:string,
-    }>) {
-
-    }
     /**
      * Set `highlight.js` theme to Emphasize's styleSheet
      *
      * And maybe apply this log.
      *
-     * @param css URL or raw css content
+     * @param css raw css content
      */
-    public async setCodeTheme(css:string) {
-        if (css.startsWith("http")) {
-            css = await fetch(css).then((v) => v.text())
-        }
+    public setCodeTheme(css:string) {
+        // get hljs global css
+        const queryHljs = getFirst(css.match(/\.hljs\s*{[\S\s]+?}/))
         // background color search
-        const queryBack = getFirst(css.match(/\.hljs\s*{[\S\s]+background:.+;\s*?}/))
+        const queryBack = getFirst(queryHljs.match(/^\s*background:.+?;/im))
         if (queryBack != null) {
-            let filter = queryBack.match(/background:.+?;/)[0]
-            filter = cssToColor(filter)
-            this.codeBackground = filter
+            try {
+                this.codeBackground = cssToColor(queryBack.trim())
+            } catch (err) {
+                this.e("setCodeTheme", "Color_bg parse Failed\n", err)
+            }
         }
         // foreground color search
-        const queryFore = getFirst(css.match(/\.hljs\s*{[\S\s]+color:.+;\s*?}/))
+        const queryFore = getFirst(queryHljs.match(/^\s*color:.+?;/im))
         if (queryFore != null) {
-            let filter = queryFore.match(/color:.+?;/)[0]
-            filter = cssToColor(filter)
-            this.codeTextColor = filter
+            try {
+                this.codeTextColor = cssToColor(queryFore.trim())
+            } catch (err) {
+                this.e("setCodeTheme", "Color_text parse Failed.\n", err)
+            }
         }
         // child style search
         const queries = css.match(/\.hljs-[a-zA-Z\-_,.\s]+?{[\S\s]+?}/g)
         const styles:{[key in string]:Chalk} = {}
         for (const query of queries) {
             // 1. color
-            const color = cssToColor(getFirst(query.match(/color:.+;/)))
-            const colorBack = cssToColor(getFirst(query.match(/background-color:.+;/)))
+            let color:string = null
+            try {
+                color = cssToColor(getFirst(query.match(/color:.+;/)))
+            } catch (err) {
+                this.e("setCodeTheme", "ColorText parse failed.\n", err)
+            }
+            let colorBack:string
+            try {
+                colorBack = cssToColor(getFirst(query.match(/background-color:.+;/)))
+            } catch (err) {
+                this.e("setCodeTheme", "ColorBack parse failed.\n", err)
+            }
             const bold = query.match(/font-weight:\s*bold;/) != null
             const italic = query.match(/font-style:\s*italic;/) != null
             const underline = query.match(/text-decoration:\s*underline;/) != null
@@ -419,52 +436,20 @@ export class ChocoLog {
      * @param obj any object or number or etc..
      */
     protected toStr(obj:unknown, beauty = true):string {
-        const forceIndenter = `\u{FFF5}_#>`
-        const valNameIndenter = `\u{FFF5}_N>`
-        const indenter = "  "
-        const forceIndent = (str:string) => {
-            const splited = str.split("\n")
-            return splited.map((v, i) => {
-                if (i === 0) {
-                    return v
-                } else if (i === splited.length - 1 && v.trim() === "}") {
-                    return forceIndenter + v
-                } else {
-                    return forceIndenter + v
-                }
-            }).join("\n")
-        }
         const cubeCache:string[] = []
-        const encodeNo = (num:number) => {
-            const str = [...num.toString(10)]
-            const out = []
-            for (const chNum of str) {
-                out.push((Number.parseInt(chNum) + 10).toString(36))
-            }
-            return out.join("")
-        }
-        const decodeNo = (num:string) => {
-            const str = [...num]
-            const out = []
-            for (const chNum of str) {
-                out.push((Number.parseInt(chNum, 36) - 10).toString(10))
-            }
-            return Number.parseInt(out.join(""))
-        }
         const toJSONOpt = {
             indent: indenter,
             singleQuotes: false,
             inlineCharacterLimit: 30,
-            transform: (o:object,prop:string | number | symbol, value:string) => {
-                if (o[prop] instanceof Error) {
+            transform: (o:object, prop:string | number | symbol, value:string) => {
+                if (o[prop] instanceof Date) {
+                    return (o[prop] as Date).toString()
+                } else if (o[prop] instanceof Error) {
                     const str = `\u{1F4A5} ${this.errorToString(o[prop])}`
                     value = forceIndent(str)
                     value = chalk.hex(this.typedColors.error)(value)
                 } else if (o[prop] instanceof Map) {
-                    const toObj = {}
-                    for (const [k, v] of o[prop].entries()) {
-                        toObj[k] = v
-                    }
+                    const toObj = this.mapToObject<unknown>(o[prop])
                     value = forceIndent(stringify(toObj, toJSONOpt))
                 } else if (typeof o[prop] === "function") {
                     // return value
@@ -472,7 +457,7 @@ export class ChocoLog {
                 } else {
                     // return value
                 }
-                const ansies = value.match(ansiRegex())
+                const ansies = value.match(ansiExp)
                 if (ansies != null) {
                     cubeCache.push(value)
                     value = `\u{FFF5}_A${encodeNo(cubeCache.length - 1)}_`
@@ -482,14 +467,16 @@ export class ChocoLog {
         }
         if (obj === null) {
             if (beauty) {
-                return chalk.italic("null")
+                // return chalk.italic("null")
+                return "null"
             } else {
                 return "null"
             }
         }
         if (obj === undefined) {
             if (beauty) {
-                return chalk.italic("undefined")
+                // return chalk.italic("undefined")
+                return "undefined"
             } else {
                 return "undefined"
             }
@@ -509,16 +496,37 @@ export class ChocoLog {
         if (obj instanceof Error) {
             return this.errorToString(obj)
         }
+        if (obj instanceof Date) {
+            return obj.toString()
+        }
         if (obj instanceof Map || typeof obj === "object" || typeof obj === "function") {
+            if (obj instanceof Map) {
+                obj = this.mapToObject(obj)
+            }
             let json = stringify(obj, toJSONOpt)
             let lastIntentNum = 0
             let lastValNameNum = 0
+            // 1. beauty
+            if (beauty) {
+                json = this.beautyJSON(json)
+            }
+            // 2. decode
+            const ansiRep = json.match(new RegExp(`\u{FFF5}_A.+?_`, "g"))
+            if (ansiRep != null) {
+                for (const ansiR of ansiRep) {
+                    const str = ansiR.match(/_A.+?_/i)[0]
+                    const index = decodeNo(str.substring(2, str.length - 1))
+                    json = json.replace(ansiR, cubeCache[index])
+                }
+            }
+            // 3. tab
             if (json.indexOf(forceIndenter) >= 0) {
                 const lines = json.split("\n")
                 for (let i = 0; i < lines.length; i += 1) {
                     let line = lines[i]
+                    const nonStyleLine = stripAnsi(line)
                     let intentNum = 0
-                    if (!line.startsWith(indenter) && !line.startsWith(forceIndenter)) {
+                    if (!nonStyleLine.startsWith(indenter) && !nonStyleLine.startsWith(forceIndenter)) {
                         continue
                     }
                     while (line.startsWith(indenter)) {
@@ -530,7 +538,7 @@ export class ChocoLog {
                     if (valName != null) {
                         valNameLn = consoleLn(valName[0])
                     }
-                    const isForcedIntenter = line.startsWith(forceIndenter)
+                    const isForcedIntenter = nonStyleLine.startsWith(forceIndenter)
                     if (isForcedIntenter) {
                         let madeIntent = ""
                         for (let k = 0; k < lastIntentNum; k += 1) {
@@ -549,17 +557,6 @@ export class ChocoLog {
                 }
                 json = lines.join("\n")
             }
-            if (beauty) {
-                json = this.beautyJSON(json)
-            }
-            const ansiRep = json.match(new RegExp(`\u{FFF5}_A.+?_`, "g"))
-            if (ansiRep != null) {
-                for (const ansiR of ansiRep) {
-                    const str = ansiR.match(/_A.+?_/i)[0]
-                    const index = decodeNo(str.substring(2, str.length - 1))
-                    json = json.replace(ansiR, cubeCache[index])
-                }
-            }
             return json
         }
         return ""
@@ -573,14 +570,16 @@ export class ChocoLog {
         } else {
             title = this.toStr(title)
             for (const str of desc) {
-                let _str = this.toStr(str)
+                const _str = this.toStr(str)
+                /*
                 if (_str.indexOf("\n") >= 0 && !_str.startsWith("\n")) {
                     _str = "\n" + _str
                 }
+                */
                 descStr += _str
             }
         }
-        if (!ansiRegex().test(descStr)) {
+        if (!ansiExp.test(descStr)) {
             descStr = this.beautyJSON(descStr)
         }
         let _title = title as string
@@ -589,16 +588,26 @@ export class ChocoLog {
         }
         return [_title, descStr] as [string, string]
     }
+    protected mapToObject<V>(map:Map<unknown, V>) {
+        const KV = map.entries()
+        const obj:{ [K in string]: V } = {}
+        for (const [key, value] of KV) {
+            obj[this.toStr(key, false)] = value
+        }
+        return obj
+    }
     protected encodeCaller(called:Called) {
         return `${called.funcName} (${called.fileName}:${called.line}:${called.column})`
     }
-    protected caller(deeper:number) {
+    protected caller() {
         const stackes = this.filterStack(StackTrace.get())
-        if (deeper + 1 >= stackes.length) {
-            return null
+        for (const stack of stackes) {
+            const fname = stack.getFileName()
+            if (fname !== jsPath) {
+                return this.decodeStack(stack)
+            }
         }
-        const query = stackes[1 + deeper]
-        return this.decodeStack(query)
+        return this.decodeStack(stackes[stackes.length - 1])
     }
     protected filterStack(stacktrace:StackTrace.StackFrame[]) {
         return stacktrace.filter((v, pos) => {
@@ -653,26 +662,6 @@ export class ChocoLog {
     }
     protected beautyJSON(json:string) {
         return emphasize.highlight("json", json, this.codeStyle).value
-    }
-    protected get timestamp() {
-        const time = new Date(Date.now())
-        let h = time.getHours()
-        const isPM = h >= 12
-        if (this.use12Hour) {
-            if (isPM) {
-                h -= 12
-            }
-            if (h === 0) {
-                h = 12
-            }
-        }
-        const pad = (n:number) => n.toString(10).padStart(2, "0")
-        const month = pad(time.getMonth() + 1)
-        const day = pad(time.getDate())
-        const m = pad(time.getMinutes())
-        const s = pad(time.getSeconds())
-        const ms = time.getMilliseconds().toString(10).padStart(3, "0")
-        return `${this.use12Hour ? (isPM ? "P" : "A") : ""}${pad(h)}:${m}:${s}.${ms}`
     }
     /**
      * Mix A and B, P P A P
@@ -731,7 +720,7 @@ export class ChocoLog {
             theme2 = theme2.bgHex(this.mixColor([options.backColor], ["#7f7f7f", 0.2]))
         }
         const theme = theme1.hex(options.colorTheme) /*.hex(options.fontColor) */
-        const callerFrom = this.caller(2)
+        const callerFrom = this.caller()
         let caller = ""
         let encBottom = ""
         if (callerFrom != null && useOrigin()) {
@@ -770,10 +759,10 @@ export class ChocoLog {
         let lastStyle:string = null
         for (let i = 0; i < splitted.length; i += 1) {
             const line = splitted[i]
-            const pureLineLn = stripAnsi(line)
+            const pureLineLn = stripAnsi(line).length
             let maxLn = i === 0 ? maxLn0 : maxLnA
             let k = 0
-            while (k < pureLineLn.length) {
+            while (k < pureLineLn) {
                 const textInfo = substrMono(line, k, maxLn)
                 let text = textInfo.content
                 if (lastStyle != null && lastStyle.length > 0) {
@@ -876,6 +865,7 @@ export class ChocoLog {
     protected getFooter(encodedCaller:string) {
         return ` ${encodedCaller} `
     }
+
     protected write(str:string) {
         console.log(str)
         return str
