@@ -1,5 +1,5 @@
 # Chocolog
-
+A simple logger
 ## Usage
 ```typescript
 import { cLog } from "chocolog"
@@ -18,7 +18,7 @@ cLog.d("thinking face", "🤔")
 // multiple content (joining all) params with custom header
 cLog.d("faces", "🤔", "🙃", "😗")
 ```
-![alt text](./img/basic_param.png)
+![alt text](https://gitlab.com/craftingmod/chocolog/raw/master/img/basic_param.png)
 
 Parameters type can be anything (but recommend *Serializable*)
 ```typescript
@@ -42,7 +42,7 @@ cLog.i("Oops", new Error("Trolling"))
 // Function.. (not correctly)
 cLog.i("Fn", (str:string) => `Hello, ${str}!`)
 ```
-![param type](./img/param_type.png)
+![param type](https://gitlab.com/craftingmod/chocolog/raw/master/img/param_type.png)
 ## Logging API
 ### `cLog.v(title[, ...desc])`
 * *Verbose* (336 Hue)
@@ -75,7 +75,7 @@ cLog.i("Fn", (str:string) => `Hello, ${str}!`)
 * loglevel `6`
 * Header `F`
 
-![log bg](./img/log_type.png)
+![log bg](https://gitlab.com/craftingmod/chocolog/raw/master/img/log_type.png)
 ### `cLog.code(code[, title])`
 * @type `code` string
 * @type `title` string | number | boolean
@@ -84,7 +84,7 @@ cLog.i("Fn", (str:string) => `Hello, ${str}!`)
 
 Prints code using emphasize(highlight.js)
 
-![log code](./img/log_code.png)
+![log code](https://gitlab.com/craftingmod/chocolog/raw/master/img/log_code.png)
 
 ## Call Origin (Experimental)
 Due to some limitation to parse call origin, default is disabled to use call origin.

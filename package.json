@@ -1,12 +1,12 @@
 {
   "name": "chocolog",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A simple colorful logcat",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "repository": "https://gitlab.com/craftingmod/chocolog",
   "license": "MIT",
-  "keywords": [],
+  "keywords": ["logcat", "logger", "colors", "thinking"],
   "scripts": {
     "build": "run-s clean && run-p build:*",
     "build:main": "tsc -p tsconfig.json",
