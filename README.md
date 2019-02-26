@@ -43,8 +43,48 @@ cLog.i("Oops", new Error("Trolling"))
 cLog.i("Fn", (str:string) => `Hello, ${str}!`)
 ```
 ![param type](./img/param_type.png)
-## API
+## Logging API
+### `cLog.v(title[, ...desc])`
+* *Verbose* (336 Hue)
+* loglevel `1`
+* Header `V`
+
 ### `cLog.d(title[, ...desc])`
+* *Debug* (206 Hue)
+* loglevel `2`
+* Header `D`
+
+### `cLog.i(title[, ...desc])`
+* *Info* (122 Hue)
+* loglevel `3`
+* Header `I`
+
+### `cLog.w(title[, ...desc])`
+* *Warning* (35 Hue)
+* loglevel `4`
+* Header `W`
+
+### `cLog.e(title[, ...desc])`
+* *Error* (4 Hue)
+* loglevel `5`
+* Header `E`
+* Contents will be colored to red
+
+### `cLog.wtf(title[, ...desc])`
+* *Assert* (294 Hue)
+* loglevel `6`
+* Header `F`
+
+![log bg](./img/log_type.png)
+### `cLog.code(code[, title])`
+* @type `code` string
+* @type `title` string | number | boolean
+* loglevel `1`
+* Header `C`
+
+Prints code using emphasize(highlight.js)
+
+![log code](./img/log_code.png)
 
 ## Call Origin (Experimental)
 Due to some limitation to parse call origin, default is disabled to use call origin.
