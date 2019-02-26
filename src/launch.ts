@@ -14,8 +14,8 @@ async function sample() {
     cLog.use12Hour = true
     log.enableAll()
     log.use12Hour = true
-    const css = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/a11y-light.css"
-    cLog.setCodeTheme(await fetch(css).then((v) => v.text()))
+    const css = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/agate.css"
+    cLog.setCssTheme(await fetch(css).then((v) => v.text()))
     // 1
     cLog.d("🤔")
     cLog.d("thinking face", "🤔")
@@ -40,11 +40,14 @@ async function sample() {
     cLog.d("Length", code.length)
 
     // 9. set log level
-    log.setLevel("WARN")
-    log.d("I'm not showing!")
-    log.w("I'm showing!")
-    log.e("Me too o/")
-    log.enableAll()
+    // log.setLevel("WARN")
+    log.v("Verbose")
+    log.d("Debug")
+    log.i("Info")
+    log.w("Warning")
+    log.e("Error")
+    log.wtf("Assert")
+    // log.enableAll()
     // end
     log.i("Finish~")
 }

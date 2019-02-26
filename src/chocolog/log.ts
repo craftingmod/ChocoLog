@@ -13,6 +13,7 @@ import uuidRand from "uuid/v4"
 import wcwidth from "wcwidth"
 import { asReadonly, DeepReadonly } from "../types/deepreadonly"
 import { Serializable, SerializableGeneric, Serializify } from "../types/serialize"
+import { hueColors, TypeColors } from "./colordefine"
 import { LogLv, LogLvStatic } from "./loglv"
 import { ansiExp, consoleLn, makeBlank, padEndMono, stripAnsi, substrMono } from "./monoutil"
 import { decodeNo, encodeNo, forceIndent, forceIndenter, indenter, valNameIndenter } from "./tostr"
@@ -26,32 +27,6 @@ if (useOrigin()) {
 }
 
 const jsPath = __filename
-const defaultCodeCSS = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/vs2015.css"
-/*
-// Stringifyable (not indicate by interface, class, ...)
-type Stringifyable =
-        string | number | boolean | Error | Buffer
-type StringifyableR = Stringifyable | StringifyableMap | StringifyableObject | StringifyableArray
-interface StringifyableObject {
-    [x:string]: StringifyableR;
-}
-interface StringifyableMap extends Map<string | number, StringifyableR> {}
-interface StringifyableArray extends Array<StringifyableR> { }
-// generic of Stringifyable
-export type SableGeneric<T> =
-    T extends Stringifyable ? T :
-    T extends Function ? never :
-    T extends Array<infer R> ? SableArrGeneric<R> :
-    T extends object ? SableObjGeneric<T> :
-    never
-type SableObjGeneric<T> = {
-    [P in keyof T]: SableGeneric<T[P]>
-}
-interface SableArrGeneric<T> extends Array<SableGeneric<T>> { }
-type SableMapGeneric<S extends any[]> = {
-    [K in keyof S]: SableGeneric<S[K]>
-}
-*/
 
 export class ChocoLog {
     /**
@@ -112,7 +87,6 @@ export class ChocoLog {
     = Theme Part
     =====================================================
     */
-    public public
     /**
      * Current log level
      */
@@ -120,28 +94,17 @@ export class ChocoLog {
     /**
      * Code theme store
      */
-    protected codeBackground = "#222222"
-    protected codeTextColor = "#ffffff"
-    protected codeStyle:Sheet = null
+    protected codeStyle:Sheet
     /**
      * General colors (all used to type)
      */
     protected generalColors = {
         back: "#222222",
+        backSub: "#333333",
+        backInfo: "#444444",
         text: "#eeeeee",
     }
-    protected typedColors = {
-        verbose: "#e09db8",
-        debug: "#8dc7f4",
-        info: "#94e897",
-        warn: "#fcc385",
-        error: "#f9756b",
-        assert: "#f1a5ff",
-    }
-
-    protected infoTheme = chalk.bgHex("#564e4e").hex(this.generalColors.text).italic
-    protected lineTheme = chalk.bgHex("#e2e2e2").hex("#111111")
-
+    protected typedColors:TypeColors
     protected middleSize = 3
     protected subpadSize = 1
 
@@ -151,7 +114,7 @@ export class ChocoLog {
     public constructor(name:string) {
         this.name = name
         this.logLevel = ChocoLog.defaultLevel
-        this.setCodeTheme(vs2015CSS)
+        this.setCssTheme(vs2015CSS)
     }
     /*
     =====================================================
@@ -250,27 +213,29 @@ export class ChocoLog {
         const desc = this.beautyCode(_code)
         return this.printSimple(title, desc, {
             tagName: "C",
-            colorTheme: this.codeTextColor,
-            fontColor: this.codeTextColor,
-            backColor: this.codeBackground,
+            colorTheme: this.generalColors.text,
+            fontColor: this.generalColors.text,
             level: this.levels.VERBOSE,
         })
     }
     /**
-     * Set `highlight.js` theme to Emphasize's styleSheet
+     * Set `highlight.js` theme to console
      *
-     * And maybe apply this log.
+     * Almost check [highlight.js github](https://github.com/highlightjs/highlight.js/tree/master/src/styles)
      *
-     * @param css raw css content
+     * Scss not supported.
+     * @param css css text
      */
-    public setCodeTheme(css:string) {
+    public setCssTheme(css:string) {
         // get hljs global css
         const queryHljs = getFirst(css.match(/\.hljs\s*{[\S\s]+?}/))
         // background color search
         const queryBack = getFirst(queryHljs.match(/^\s*background:.+?;/im))
+        let codeBackground:string
+        let codeTextColor:string
         if (queryBack != null) {
             try {
-                this.codeBackground = cssToColor(queryBack.trim())
+                codeBackground = cssToColor(queryBack.trim())
             } catch (err) {
                 this.w("setCodeTheme", "Color_bg parse Failed\n", err)
             }
@@ -279,11 +244,12 @@ export class ChocoLog {
         const queryFore = getFirst(queryHljs.match(/^\s*color:.+?;/im))
         if (queryFore != null) {
             try {
-                this.codeTextColor = cssToColor(queryFore.trim())
+                codeTextColor = cssToColor(queryFore.trim())
             } catch (err) {
                 this.w("setCodeTheme", "Color_text parse Failed.\n", err)
             }
         }
+        this.setBgTheme(codeBackground == null ? this.generalColors.back : codeBackground, codeTextColor)
         // child style search
         const queries = css.match(/\.hljs-[a-zA-Z\-_,.\s]+?{[\S\s]+?}/g)
         const styles:{[key in string]:Chalk} = {}
@@ -334,6 +300,39 @@ export class ChocoLog {
         }
         this.codeStyle = styles
         return styles
+    }
+    public setBgTheme(background:string, textColor?:string) {
+        const bgColor = Color(background).hsv()
+        if (textColor === undefined) {
+            if (bgColor.isDark()) {
+                textColor = "#eeeeee"
+            } else {
+                textColor = "#111111"
+            }
+        }
+        const bgValue = bgColor.value()
+        const toHex = (cl:Color) => {
+            return cl.hex().replace("0x", "#")
+        }
+        const genColor = (hue:number) => {
+            const sat = Math.round(25 + (bgValue) * 0.55)
+            const val = Math.round(55 + (100 - bgValue) * 0.45)
+            return toHex(Color({h:hue, s: sat, v: val}))
+        }
+        const obj = {} as TypeColors
+        for (const [k,v] of Object.entries(hueColors)) {
+            obj[k] = genColor(v)
+        }
+        this.typedColors = obj
+        this.generalColors.back = background
+        this.generalColors.text = textColor
+        if (bgColor.isDark()) {
+            this.generalColors.backSub = toHex(bgColor.lighten(0.2))
+            this.generalColors.backInfo = toHex(bgColor.lighten(0.4))
+        } else {
+            this.generalColors.backSub = toHex(bgColor.darken(0.2))
+            this.generalColors.backInfo = toHex(bgColor.darken(0.4))
+        }
     }
     /*
     =====================================================
@@ -404,7 +403,6 @@ export class ChocoLog {
         cloned.setLevel(ChocoLog.defaultLevel)
         // code style
         cloned.codeStyle = this.codeStyle
-        cloned.codeTextColor = this.codeTextColor
         // color theme
         cloned.generalColors = {...this.generalColors}
         cloned.typedColors = {...this.typedColors}
@@ -716,9 +714,7 @@ export class ChocoLog {
         }
         // define external properties
         let theme1 = this.defaultTheme.hex(options.fontColor)
-        let theme2 = chalk.bgHex(
-            this.mixColor([this.generalColors.back], ["#7f7f7f", 0.2]))
-            .hex(options.fontColor)
+        let theme2 = chalk.bgHex(this.generalColors.backSub).hex(options.fontColor)
         if (options.backColor != null) {
             theme1 = theme1.bgHex(options.backColor)
             theme2 = theme2.bgHex(this.mixColor([options.backColor], ["#7f7f7f", 0.2]))
@@ -729,7 +725,8 @@ export class ChocoLog {
         let encBottom = ""
         if (callerFrom != null && useOrigin()) {
             caller = this.encodeCaller(callerFrom)
-            encBottom = this.infoTheme(this.getFooter(caller))
+            encBottom = chalk.bgHex(this.generalColors.backInfo)
+                .hex(options.colorTheme).italic(this.getFooter(caller))
         }
         const encHeader = theme(
             `${this.getHeader(header, theme.inverse)} `,
@@ -820,7 +817,6 @@ export class ChocoLog {
                     makeBlank(this.middleSize - consoleLn(indexVo)) + indexVo)
                     }${lineTheme(" ")}`
                 if (i < lines.length - 1) {
-                    const test = consoleLn(line)
                     thisLine += lineTheme(line) +
                         lineTheme(makeBlank(maxLnA - calcLnWithTab(line, thisLine)))
                 } else {
