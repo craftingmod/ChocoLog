@@ -12,7 +12,7 @@ declare module "emphasize" {
      * [`language`](https://github.com/highlightjs/highlight.js/blob/master/docs/css-classes-reference.rst#language-names-and-aliases)
      * grammar.
      */
-    export function highlight(language:string, value:string, sheet?:Sheet):Result
+    export function highlight(language:HlLanguage, value:string, sheet?:Sheet):Result
     /**
      * Parse `value` by guessing its grammar.
      * 
@@ -52,7 +52,22 @@ declare module "emphasize" {
     export type Sheet = {
         [key in PropertyNames<Serializify<SheetKeys>>]? : Chalk
     }
-    export type SheetKeys = [
+    /**
+     * Language Type
+     * 
+     * https://github.com/highlightjs/highlight.js/blob/master/docs/css-classes-reference.rst#language-names-and-aliases
+     */
+    export type HlLanguage = PropertyNames<Serializify<HlAliases>>
+    type PropertyNames<T extends string[]> = {
+        // tslint:disable-next-line
+        [K in keyof T]: T[K] extends Function ? never :
+        T[K] extends string ? T[K] :
+        never
+    }[keyof T]
+    /**
+     * Style Keys
+     */
+    type SheetKeys = [
         "keyword",
         "built_in",
         "type",
@@ -88,13 +103,183 @@ declare module "emphasize" {
         "addition",
         "deletion",
     ]
-    type PropertyNames<T extends string[]> = {
-        // tslint:disable-next-line
-        [K in keyof T]: T[K] extends Function ? never :
-        T[K] extends string ? T[K] :
-        never
-    }[keyof T]
-
+    /**
+     * https://raw.githubusercontent.com/highlightjs/highlight.js/master/docs/css-classes-reference.rst
+     * 
+     * Replace `\+.+\+` to ``
+     * 
+     * Replace `^\|.+?\|\s*` to ``
+     * 
+     * Replace `\s+\|\s+` to `,\n`
+     * 
+     * Replace `\,\s*\,` to `,`
+     * 
+     * Replace `[A-Za-z0-9\-\_\.]+` to `"$0"`
+     */
+    type HlAliases = [
+        "1c",
+        "abnf",
+        "accesslog",
+        "ada",
+        "armasm", "arm",
+        "avrasm",
+        "actionscript", "as",
+        "angelscript", "asc",
+        "apache", "apacheconf",
+        "applescript", "osascript",
+        "arcade",
+        "asciidoc", "adoc",
+        "aspectj",
+        "autohotkey",
+        "autoit",
+        "awk", "mawk", "nawk", "gawk",
+        "axapta",
+        "bash", "sh", "zsh",
+        "basic",
+        "bnf",
+        "brainfuck", "bf",
+        "cs", "csharp",
+        "cal",
+        "cos", "cls",
+        "cmake", "cmake.in",
+        "coq",
+        "csp",
+        "css",
+        "capnproto", "capnp",
+        "clojure", "clj",
+        "coffeescript", "coffee", "cson", "iced",
+        "crmsh", "crm", "pcmk",
+        "crystal", "cr",
+        "d",
+        "dns", "zone", "bind",
+        "dos", "bat", "cmd",
+        "dart",
+        "delphi", "dpr", "dfm", "pas", "pascal", "freepascal",
+        "lazarus", "lpr", "lfm",
+        "diff", "patch",
+        "django", "jinja",
+        "dockerfile", "docker",
+        "dsconfig",
+        "dts",
+        "dust", "dst",
+        "ebnf",
+        "elixir",
+        "elm",
+        "erlang", "erl",
+        "excel", "xls", "xlsx",
+        "fsharp", "fs",
+        "fix",
+        "fortran", "f90", "f95",
+        "gcode", "nc",
+        "gams", "gms",
+        "gauss", "gss",
+        "gherkin",
+        "go", "golang",
+        "golo", "gololang",
+        "gradle",
+        "groovy",
+        "xml", "html", "xhtml", "rss", "atom", "xjb", "xsd", "xsl", "plist",
+        "http", "https",
+        "haml",
+        "handlebars", "hbs", "html.hbs", "html.handlebars",
+        "haskell", "hs",
+        "haxe", "hx",
+        "hy", "hylang",
+        "ini", "toml",
+        "inform7", "i7",
+        "irpf90",
+        "json",
+        "java", "jsp",
+        "javascript", "js", "jsx",
+        "kotlin", "kt",
+        "leaf",
+        "lasso", "ls", "lassoscript",
+        "less",
+        "ldif",
+        "lisp",
+        "livecodeserver",
+        "livescript", "ls",
+        "lua",
+        "makefile", "mk", "mak",
+        "markdown", "md", "mkdown", "mkd",
+        "mathematica", "mma",
+        "matlab",
+        "maxima",
+        "mel",
+        "mercury",
+        "mizar",
+        "mojolicious",
+        "monkey",
+        "moonscript", "moon",
+        "n1ql",
+        "nsis",
+        "nginx", "nginxconf",
+        "nimrod", "nim",
+        "nix",
+        "ocaml", "ml",
+        "objectivec", "mm", "objc", "obj-c",
+        "glsl",
+        "openscad", "scad",
+        "ruleslanguage",
+        "oxygene",
+        "pf", "pf.conf",
+        "php", "php3", "php4", "php5", "php6",
+        "parser3",
+        "perl", "pl", "pm",
+        "plaintext",
+        "pony",
+        "pgsql", "postgres", "postgresql",
+        "powershell", "ps",
+        "processing",
+        "prolog",
+        "properties",
+        "protobuf",
+        "puppet", "pp",
+        "python", "py", "gyp",
+        "profile",
+        "k", "kdb",
+        "qml",
+        "r",
+        "reasonml", "re",
+        "rib",
+        "rsl",
+        "graph", "instances",
+        "ruby", "rb", "gemspec", "podspec", "thor", "irb",
+        "rust", "rs",
+        "scss",
+        "sql",
+        "p21", "step", "stp",
+        "scala",
+        "scheme",
+        "scilab", "sci",
+        "shell", "console",
+        "smali",
+        "smalltalk", "st",
+        "stan",
+        "stata",
+        "SAS", "sas",
+        "stylus", "styl",
+        "subunit",
+        "swift",
+        "tap",
+        "tcl", "tk",
+        "tex",
+        "thrift",
+        "tp",
+        "twig", "craftcms",
+        "typescript", "ts",
+        "vbnet", "vb",
+        "vbscript", "vbs",
+        "vhdl",
+        "vala",
+        "verilog", "v",
+        "vim",
+        "x86asm",
+        "xl", "tao",
+        "xquery", "xpath", "xq",
+        "yml", "yaml",
+        "zephir", "zep",
+    ]
     /**
      * Serializify library
      */

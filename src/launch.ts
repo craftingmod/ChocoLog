@@ -36,7 +36,7 @@ async function sample() {
     cLog.i("Fn", (str:string) => `Hello, ${str}!`)
     const cd = fs.readFileSync(process.cwd() + "/example.js", { encoding: "utf8" })
     cLog.d(new Date(Date.now()))
-    const code = cLog.code(cd)
+    const code = cLog.code(cd, "Code Sample", "javascript")
     cLog.d("Length", code.length)
 
     // 9. set log level
@@ -53,9 +53,7 @@ async function sample() {
 }
 function perform() {
     const start = Date.now()
-    for (let i = 0; i < 100000; i += 1) {
-        substrMono("ABCDEFGHJIJIJIJIJIJIJIJIJIJIJJIIJIJIJIJI", 15, 4)
-    }
+    cLog.d("Performance Test")
     console.log(Date.now() - start)
 }
 // perform()

@@ -2,7 +2,7 @@ import ansiParser, { removeAnsi } from "ansi-parser"
 import chalk, { Chalk } from "chalk"
 import Color from "color"
 import { normal } from "color-blend"
-import emphasize, { Sheet } from "emphasize"
+import emphasize, { HlLanguage, Sheet } from "emphasize"
 import { write } from "fs"
 import fs from "fs-extra"
 import fetch from "node-fetch"
@@ -188,7 +188,6 @@ export class ChocoLog {
      */
     public wtf(title:unknown, ...desc:Array<unknown>) {
         const params = this.fallbackParam(title, desc)
-        params[1] = chalk.hex("#ffcbc6")(params[1])
         return this.printSimple(params[0], params[1], {
             tagName: "F",
             colorTheme: this.typedColors.assert,
@@ -197,21 +196,22 @@ export class ChocoLog {
         })
     }
     /**
-     * Log programming code with auto formatter
+     * Log programming code with formatter
      *
      * used `highlight.js` wrapper `emphasize`
-     * @param _code Code string to print (css, js, etc...)
-     * @param _title Title of log, not need at normal.
+     * @param codeContent Code string to print (css, js, etc...)
+     * @param title Title of log, not need at normal.
+     * @param lang The language of the code. If non-specic, Library will auto detect
      */
-    public code(_code:string, _title?:string | number | boolean) {
-        let title:string
-        if (_title == null) {
-            title = "Code"
+    public code(codeContent:string, title?:string | number | boolean, lang?:HlLanguage) {
+        let _title:string
+        if (title == null) {
+            _title = "Code"
         } else {
-            title = this.toStr(_title)
+            _title = this.toStr(title)
         }
-        const desc = this.beautyCode(_code)
-        return this.printSimple(title, desc, {
+        const desc = this.beautyCode(codeContent, lang)
+        return this.printSimple(_title, desc, {
             tagName: "C",
             colorTheme: this.generalColors.text,
             fontColor: this.generalColors.text,
@@ -659,8 +659,14 @@ export class ChocoLog {
             column: sourceColumn,
         } as Called
     }
-    protected beautyCode(code:string) {
-        return emphasize.highlightAuto(code, this.codeStyle).value
+    protected beautyCode(code:string, type?:HlLanguage) {
+        let val:string
+        if (type !== undefined) {
+            val = emphasize.highlight(type, code, this.codeStyle).value
+        } else {
+            val = emphasize.highlightAuto(code, this.codeStyle).value
+        }
+        return val
     }
     protected beautyJSON(json:string) {
         return emphasize.highlight("json", json, this.codeStyle).value
