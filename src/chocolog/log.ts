@@ -14,6 +14,7 @@ import wcwidth from "wcwidth"
 import { asReadonly, DeepReadonly } from "../types/deepreadonly"
 import { Serializable, SerializableGeneric, Serializify } from "../types/serialize"
 import { hueColors, TypeColors } from "./colordefine"
+import { HlTheme } from "./hlthemes"
 import { LogLv, LogLvStatic } from "./loglv"
 import { ansiExp, consoleLn, makeBlank, padEndMono, stripAnsi, substrMono } from "./monoutil"
 import { decodeNo, encodeNo, forceIndent, forceIndenter, indenter, valNameIndenter } from "./tostr"
@@ -122,9 +123,11 @@ export class ChocoLog {
     = Due to callback detector, we should copy-paste code.
     =====================================================
     */
-   /**
-    * Debug log
-    */
+    /**
+     * Prints *debug* log. (Loglevel 2)
+     * @param title Title of logger. If none, this is used to content
+     * @param desc Contents to print
+     */
     public d(title:unknown, ...desc:Array<unknown>) {
         const [strTitle, strDesc] = this.fallbackParam(title, desc)
         return this.printSimple(strTitle, strDesc, {
@@ -135,7 +138,9 @@ export class ChocoLog {
         })
     }
     /**
-     * Verbose log
+     * Prints *verbose* log. (Loglevel 1)
+     * @param title Title of logger. If none, this is used to content
+     * @param desc Contents to print
      */
     public v(title:unknown, ...desc:Array<unknown>) {
         const [strTitle, strDesc] = this.fallbackParam(title, desc)
@@ -147,7 +152,9 @@ export class ChocoLog {
         })
     }
     /**
-     * Info log
+     * Prints *info* log. (Loglevel 3)
+     * @param title Title of logger. If none, this is used to content
+     * @param desc Contents to print
      */
     public i(title:unknown, ...desc:Array<unknown>) {
         const [strTitle, strDesc] = this.fallbackParam(title, desc)
@@ -159,7 +166,9 @@ export class ChocoLog {
         })
     }
     /**
-     * Warning log
+     * Prints *warn* log. (Loglevel 4)
+     * @param title Title of logger. If none, this is used to content
+     * @param desc Contents to print
      */
     public w(title:unknown, ...desc:Array<unknown>) {
         const [strTitle, strDesc] = this.fallbackParam(title, desc)
@@ -171,7 +180,9 @@ export class ChocoLog {
         })
     }
     /**
-     * Error log
+     * Prints *error* log. (Loglevel 5)
+     * @param title Title of logger. If none, this is used to content
+     * @param desc Contents to print
      */
     public e(title:unknown, ...desc:Array<unknown>):null {
         const [strTitle, strDesc] = this.fallbackParam(title, desc)
@@ -184,7 +195,9 @@ export class ChocoLog {
         return null
     }
     /**
-     * OMG
+     * ☠ (Loglevel **6**)
+     * @param title Title of logger. If none, this is used to content
+     * @param desc Contents to print
      */
     public wtf(title:unknown, ...desc:Array<unknown>) {
         const params = this.fallbackParam(title, desc)
@@ -229,6 +242,12 @@ export class ChocoLog {
     public setCssTheme(css:string) {
         // get hljs global css
         const queryHljs = getFirst(css.match(/\.hljs\s*{[\S\s]+?}/))
+        if (queryHljs == null) {
+            // wtf
+            this.wtf("setCssTheme", "QueryHljs being null!")
+            this.code(css, "CSSInfo", "css")
+            return this.codeStyle
+        }
         // background color search
         const queryBack = getFirst(queryHljs.match(/^\s*background:.+?;/im))
         let codeBackground:string
@@ -275,9 +294,12 @@ export class ChocoLog {
                 continue
             }
             for (const header of headers) {
-                const head = header.replace(/^\.hljs-/i, "").replace(/,\s*/i, "").replace("{", "").trim()
+                let head = header.replace(/^\.hljs-/i, "").replace(/,\s*/i, "").replace("{", "").trim()
+                if (head === "constructor") {
+                    head = "_" + head
+                }
                 let style:Chalk = styles[head]
-                if (styles[head] === undefined) {
+                if (style === undefined) {
                     style = chalk
                 }
                 if (color != null) {
@@ -298,9 +320,19 @@ export class ChocoLog {
                 styles[head] = style
             }
         }
+        if (styles["_constructor"] != null) {
+            styles["constructor"] = styles["_constructor"]
+        }
         this.codeStyle = styles
         return styles
     }
+    /**
+     * Set background & text color
+     *
+     * Auto modify type colors.
+     * @param background Background of terminal
+     * @param textColor The default text color of terminal
+     */
     public setBgTheme(background:string, textColor?:string) {
         const bgColor = Color(background).hsv()
         if (textColor === undefined) {
@@ -333,6 +365,17 @@ export class ChocoLog {
             this.generalColors.backSub = toHex(bgColor.darken(0.2))
             this.generalColors.backInfo = toHex(bgColor.darken(0.4))
         }
+    }
+    /**
+     * Apply Highlight.js style from github
+     *
+     * https://github.com/highlightjs/highlight.js
+     * @param type Highlight.js style
+     */
+    public async setStyleGithub(type:HlTheme) {
+        const url = `https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/${type}.css`
+        const css = await fetch(url).then((v) => v.text())
+        this.setCssTheme(css)
     }
     /*
     =====================================================
@@ -397,6 +440,10 @@ export class ChocoLog {
     /*
     ==== Clone Part
     */
+    /**
+     * Clones this Log class and returns it
+     * @param name New logger's name
+     */
     public getLogger(name:string):ChocoLog {
         const cloned = new ChocoLog(name)
         // level
@@ -412,8 +459,8 @@ export class ChocoLog {
         return cloned
     }
     /**
-     * The only part to need "File IO"
-     * @param err
+     * Let's trace error beauty
+     * @param err Error
      */
     protected errorToString(err:Error) {
         const rawStacks = this.filterStack(StackTrace.parse(err))
@@ -423,6 +470,10 @@ export class ChocoLog {
         }
         return `[${err.name}] ${err.message}\n${stackes.map((v) => `  at ${v}`).join("\n")}`
     }
+    /**
+     * Decode LogLv to number
+     * @param level LogLv
+     */
     protected decodeLogLevel(level:LogLv | keyof typeof LogLvStatic) {
         if (typeof level === "string") {
             for (const [key, value] of Object.entries(this.levels)) {
@@ -911,6 +962,16 @@ function cssToColor(text:string) {
     let filter = text
     filter = filter.substr(filter.indexOf(":") + 1).trimLeft()
     filter = filter.substring(0, filter.lastIndexOf(";"))
+    try {
+        Color(filter)
+    } catch (err) {
+        const org = filter
+        filter = getFirst(filter.match(/#[A-Fa-f0-9]{1,6}/ig))
+        if (filter == null) {
+            throw new Error("Unknown color " + org)
+        }
+    }
+    filter = filter.replace(/url\(.+?\)/ig, "").trim()
     filter = `#${Color(filter).rgbNumber().toString(16).padStart(6, "0").toUpperCase()}`
     return filter
 }
