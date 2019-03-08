@@ -45,7 +45,7 @@ cLog.i("Fn", (str:string) => `Hello, ${str}!`)
 ![param type](https://gitlab.com/craftingmod/chocolog/raw/master/img/param_type.png)
 ## Logging API
 ### `cLog.v(title[, ...desc])`
-* *Verbose* (336 Hue)
+* *Verbose* (~~336 Hue~~Follows default text color)
 * loglevel `1`
 * Header `V`
 
@@ -77,14 +77,33 @@ cLog.i("Fn", (str:string) => `Hello, ${str}!`)
 
 ![log bg](https://gitlab.com/craftingmod/chocolog/raw/master/img/log_type.png)
 ### `cLog.code(code[, title])`
-* @type `code` string
-* @type `title` string | number | boolean
+* type `code` string
+* type `title` string | number | boolean
 * loglevel `1`
 * Header `C`
 
 Prints code using emphasize(highlight.js)
 
 ![log code](https://gitlab.com/craftingmod/chocolog/raw/master/img/log_code.png)
+
+## Theme API
+Used [highlight.js styles](https://github.com/highlightjs/highlight.js/tree/master/src/styles) from github, so preview and types are available to highlight.js repo.
+
+### `cLog.setCssTheme(css)`
+* type `css` css text
+
+Set logger's color schema to `css` css.
+Class selector Prefix `hljs` requires to parsing.
+
+### async `cLog.setStyleGithub(theme)`
+* type `theme` highlight.js theme (name)
+
+Set logger's color schema to `theme`.
+I used emphasize's sheet.
+Some theme may not supported.
+
+![Example](https://gitlab.com/craftingmod/chocolog/raw/master/img/theme_example.png)
+
 
 ## Call Origin (Experimental)
 Due to some limitation to parse call origin, default is disabled to use call origin.

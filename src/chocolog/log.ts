@@ -146,7 +146,7 @@ export class ChocoLog {
         const [strTitle, strDesc] = this.fallbackParam(title, desc)
         return this.printSimple(strTitle, strDesc, {
             tagName: "V",
-            colorTheme: this.typedColors.verbose,
+            colorTheme: this.generalColors.text,
             fontColor: this.generalColors.text,
             level: this.levels.VERBOSE,
         })
@@ -337,7 +337,7 @@ export class ChocoLog {
         const bgColor = Color(background).hsv()
         if (textColor === undefined) {
             if (bgColor.isDark()) {
-                textColor = "#eeeeee"
+                textColor = "#dddddd"
             } else {
                 textColor = "#111111"
             }
@@ -359,11 +359,21 @@ export class ChocoLog {
         this.generalColors.back = background
         this.generalColors.text = textColor
         if (bgColor.isDark()) {
-            this.generalColors.backSub = toHex(bgColor.lighten(0.2))
-            this.generalColors.backInfo = toHex(bgColor.lighten(0.4))
+            const fn = (n:number) => {
+                if (bgColor.value() <= 0.05) {
+                    const hex = (Math.floor(n * 80)).toString(16).toUpperCase()
+                    return Color(`#${hex}${hex}${hex}`)
+                }
+                return bgColor.lighten(n)
+            }
+            this.generalColors.backSub = toHex(fn(0.2))
+            this.generalColors.backInfo = toHex(fn(0.3))
         } else {
-            this.generalColors.backSub = toHex(bgColor.darken(0.2))
-            this.generalColors.backInfo = toHex(bgColor.darken(0.4))
+            const fn = (n:number) => {
+                return bgColor.darken(n)
+            }
+            this.generalColors.backSub = toHex(fn(0.1))
+            this.generalColors.backInfo = toHex(fn(0.3))
         }
     }
     /**
@@ -764,18 +774,14 @@ export class ChocoLog {
      */
     protected printSimple(header:string, content:string, options:{
         tagName:string, colorTheme:string, fontColor:string,
-        level:LogLv, backColor?:string}) {
+        level:LogLv}) {
         // check log level
         if (this.logLevel > options.level) {
             return ""
         }
         // define external properties
-        let theme1 = this.defaultTheme.hex(options.fontColor)
-        let theme2 = chalk.bgHex(this.generalColors.backSub).hex(options.fontColor)
-        if (options.backColor != null) {
-            theme1 = theme1.bgHex(options.backColor)
-            theme2 = theme2.bgHex(this.mixColor([options.backColor], ["#7f7f7f", 0.2]))
-        }
+        const theme1 = this.defaultTheme.hex(options.fontColor)
+        const theme2 = chalk.bgHex(this.generalColors.backSub).hex(options.fontColor)
         const theme = theme1.hex(options.colorTheme) /*.hex(options.fontColor) */
         const callerFrom = this.caller()
         let caller = ""
