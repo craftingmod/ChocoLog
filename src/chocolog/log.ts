@@ -916,8 +916,8 @@ export class ChocoLog {
     }
     protected getMiddle(style:Chalk, typeStr:string) {
         const cutted = substrMono(typeStr, 0, this.headerSize)
-        return style(` ${cutted.content.padStart(
-            cutted.content.length + this.middleSize - cutted.original.length)} `)
+        return style(`${cutted.content.padStart(
+            cutted.content.length + this.middleSize - cutted.original.length + 1)} `)
     }
     protected getFooter(encodedCaller:string) {
         return ` ${encodedCaller} `
